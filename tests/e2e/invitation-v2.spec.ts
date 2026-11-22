@@ -2,6 +2,7 @@ import { test, expect, type Page } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 import { readFile } from "node:fs/promises";
 import { designBackend, designEvent, designGuests } from "./redesign-fixtures";
+import { captureVisualEvidence } from "./visualEvidence";
 
 const route = "/hsv/design-fixture/minh-an";
 const output = ".local/ui-redesign/invitation-v2/after";
@@ -42,7 +43,7 @@ async function capture(page: Page, name: string, fullPage = false) {
     ),
     name,
   ).toBe(true);
-  await page.screenshot({
+  await captureVisualEvidence(page, {
     path: output + "/" + name + ".png",
     fullPage,
     animations: "disabled",

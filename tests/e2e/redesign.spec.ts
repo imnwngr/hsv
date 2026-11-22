@@ -1,6 +1,7 @@
 import { test, expect, type Page } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 import { designBackend, designEvent, designGuests } from "./redesign-fixtures";
+import { captureVisualEvidence } from "./visualEvidence";
 
 async function settled(page: Page) {
   await page.evaluate(async () => {
@@ -37,7 +38,7 @@ async function capture(page: Page, name: string) {
     ),
     `Overflow: ${name}`,
   ).toBe(true);
-  await page.screenshot({
+  await captureVisualEvidence(page, {
     path: `.local/ui-redesign/after/${name}.png`,
     fullPage: true,
     animations: "disabled",

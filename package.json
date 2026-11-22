@@ -12,6 +12,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
+    "test:e2e:visual": "node scripts/test-e2e-visual.mjs",
     "test:rls": "node scripts/rls-live.mjs",
     "test:concurrency": "node scripts/test-hsv-concurrency.mjs",
     "check:backend": "node scripts/check-hsv-backend.mjs",

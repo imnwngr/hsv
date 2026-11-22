@@ -1,6 +1,7 @@
 import { test, expect, type Page } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 import { designBackend, designEvent, designGuests } from "./redesign-fixtures";
+import { captureVisualEvidence } from "./visualEvidence";
 import type { ClubEvent } from "../../src/types/domain";
 const celebration: ClubEvent = {
   ...designEvent,
@@ -27,7 +28,7 @@ async function capture(page: Page, name: string) {
     ),
     name,
   ).toBe(true);
-  await page.screenshot({
+  await captureVisualEvidence(page, {
     path: `.local/hsv-v3/screenshots/${name}.png`,
     fullPage: true,
     animations: "disabled",

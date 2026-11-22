@@ -45,11 +45,17 @@ Chọn Xanh Hội, Lá xanh, Đỏ son, Tím mực, Hổ phách hoặc một mà
 
 ### Nội dung dành cho từng người nhận
 
-Tạo sự kiện → chọn loại và màu → chọn khách mời → lưu hoặc công bố → sao chép link riêng. Danh bạ hỗ trợ cá nhân/nhóm, sắp xếp và primary alias. Người nhận mở thiệp với hiệu ứng giấy, nội dung theo nhịp cuộn và điều khiển nhạc Liquid Glass; chế độ giảm chuyển động vẫn giữ nội dung đọc được.
+Tạo sự kiện → chọn loại và màu → chọn khách mời → lưu → công khai ở danh sách quản trị → sao chép link riêng. Danh bạ hỗ trợ cá nhân/nhóm, sắp xếp và primary alias. Người nhận mở thiệp với hiệu ứng giấy, nội dung theo nhịp cuộn và điều khiển nhạc Liquid Glass; chế độ giảm chuyển động vẫn giữ nội dung đọc được.
 
 ### Quản trị có phân quyền
 
 Editor quản lý nội dung; Admin quản lý thêm quyền Editor. Admin nhập email trong một luồng: tài khoản đã có được cấp quyền, email mới đi qua lời mời khi server cho phép. Giao diện phân biệt chờ nhận lời mời, lỗi một phần và cần khôi phục. Quyền được kiểm tra tại server/RLS; retry không tự gửi lại email.
+
+### Điểm danh và điều hướng sự kiện (nhánh đang phát triển)
+
+Nhánh `feat/event-attendance` bổ sung công tắc công khai lưu ngay tại danh sách quản trị, sáu mục điều hướng bám theo editor và thiệp mặc định cho mỗi sự kiện. Điểm danh dành cho thiệp nhóm của Thiệp mời: hai đợt theo lịch, ghim/bán kính xác nhận, QR động, kết quả và sửa thông tin ngay trong thiệp. Quản trị xem lịch sử sửa và xuất CSV để nhập Google Sheets/Excel.
+
+**Chưa phát hành:** backend nằm trong bản đề xuất [attendance.sql](supabase/proposals/attendance.sql), chỉ chạy trong harness synthetic. Chưa áp dụng schema hoặc deploy Edge/Pages lên môi trường thật. Không có dependency mới. Xem [quy tắc, kiểm thử và cổng phát hành](docs/OPERATIONS.md#diem-danh).
 
 <a id="chay-local"></a>
 ## Chạy local

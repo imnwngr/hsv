@@ -172,3 +172,98 @@ Các bản gốc trước dọn dẹp được ghim tại commit `5d663574be5a23
 | Tất cả kế hoạch, review SQL, manual và nghiệm thu cũ | [Cây source trước dọn dẹp](https://github.com/imnwngr/hsv/tree/5d663574be5a2357c2b161385d1b4fe0d430a75f) |
 
 Các liên kết này giữ nguyên bằng chứng lịch sử, không xác nhận trạng thái production hôm nay. File log/backup riêng không nằm trong Git; đường dẫn được ghi trong biên bản không bảo đảm file còn tồn tại hoặc có thể khôi phục.
+
+<a id="diem-danh"></a>
+## Điểm danh: source local ngày 23/11/2026
+
+Nhánh `feat/event-attendance` bắt đầu từ `f3c9c90`, remote `https://github.com/imnwngr/hsv.git`, base path `/hsv/`. Phần này mô tả source của nhánh, **không xác nhận tính năng đang chạy trên production**. Không push, deploy, chạy QA ghi dữ liệu thật hoặc thay Auth/RLS/roles hiện hành. Không thêm hay nâng dependency; `package.json` chỉ thêm script kiểm thử đồng thời.
+
+### Thao tác quản trị
+
+Tại `/admin/`, bật/tắt công khai chỉ PATCH `events.status`; RLS và constraints của database vẫn quyết định quyền/điều kiện. Công tắc khóa trong request, lỗi trả trạng thái trước. Save nội dung giữ trạng thái công khai đang lưu trong database, không ghi đè trạng thái từ một editor cũ.
+
+Editor có sáu mục bám dưới header. “Thiệp hiển thị khi mở sự kiện” chọn một `event_guests.id` đã có; nút Lưu ghi lựa chọn cùng nội dung. Resolver lấy **primary alias hiện tại** và loại thiệp hiện tại. Link sự kiện không có người nhận điều hướng đến `/hsv/thiep-moi/:code/:alias` hoặc `/hsv/thiep-chuc/:code/:alias`; link cá nhân vẫn giữ người nhận. Thiệp bị xóa, alias không hợp lệ hoặc chưa chọn thì quay về trang giới thiệu. Sự kiện nháp tiếp tục ẩn theo backend. Không refresh snapshot hoặc thay media khi cấu hình các mục này.
+
+Trong Thiệp mời, chọn ghim, xác nhận, kiểm tra hai đợt rồi bật điểm danh và Lưu. Công tắc chỉ bật tiếp nhận theo lịch. Khi tắt, bản ghi/lịch sử vẫn còn. Thay địa điểm làm dấu xác nhận ghim cũ không còn hợp lệ; sửa nội dung không liên quan giữ xác nhận. Giờ đóng luôn bằng giờ mở cộng 15 phút.
+
+Link trình chiếu `/hsv/admin/attendance/:code/display` yêu cầu session có `can_edit_content()`, dùng cùng quyền quản trị nội dung hiện hành. Không có bearer link đặc quyền để phát cho sinh viên; thu hồi quyền quản trị cũng ngăn RPC cấp QR tiếp theo. Kết quả ở `/hsv/admin/attendance/:code`, có tải lại, lịch sử và xuất CSV UTF-8 BOM. Khi import Google Sheets/Excel, chọn cột MSSV là **Plain text/Text** để giữ số 0 đầu; các mốc trong CSV là ISO UTC có offset, trên UI hiển thị giờ Việt Nam. CSV thoát dấu nháy và chặn tiền tố công thức nguy hiểm.
+
+### Dữ liệu và cổng áp dụng
+
+`supabase/proposals/attendance.sql` là **bản đề xuất, không phải migration đã áp dụng**. Nó đã chạy trên PGlite và cluster PostgreSQL 18 mới chỉ nghe loopback, dữ liệu synthetic. Script dừng nếu namespace đã tồn tại; không được chạy lại trên schema đã áp dụng hoặc chạy cả thư mục migrations.
+
+| Bổ sung | Mục đích |
+| --- | --- |
+| `events.attendance_config` nullable JSONB | Bật/tắt, ghim riêng, nguồn xác nhận, bán kính, lịch và chu kỳ QR; sự kiện cũ NULL nghĩa là tắt |
+| `events.default_invitation_id` | FK tới thiệp đã lưu, xóa thiệp thì SET NULL; trigger kiểm tra cùng sự kiện |
+| `attendance_private.records` | UUID ổn định, sự kiện/thiệp, họ tên/MSSV, hai mốc server, browser UUID và SHA-256 của khóa ngẫu nhiên |
+| `attendance_private.edits` | Thông tin trước/sau mỗi lần sửa, thời điểm server; không thay mốc điểm danh |
+| `attendance_private.tokens` | Mã QR ngẫu nhiên phía server, gắn sự kiện/đợt/slot/cấu hình/thời hạn; không chứa PII |
+| `attendance_*` RPC | Status, trình chiếu, ghi nhận, đọc/sửa chính bản ghi và kết quả quản trị; capability v1 |
+| `attendance-location` Edge Function | Mở rộng link Maps an toàn cho người có quyền quản trị nội dung |
+
+Schema private không được cấp quyền truy cập bảng trực tiếp và có RLS. RPC đặc quyền cố định `search_path`, kiểm tra quyền quản trị hoặc chứng cứ sở hữu khóa, revoke quyền mặc định và grant từng API cần thiết. Hai UNIQUE `(event_id, browser_id)` và `(event_id, student_id)`, khóa giao dịch theo trình duyệt và row lock giữ ràng buộc khi đồng thời. Dữ liệu vị trí được kiểm tra trong RPC, **không lưu lịch sử theo dõi vị trí**. Không thay role hay policy Auth hiện hành. Token cũ được dọn khi cấp QR, chỉ trong sự kiện đó và khi đã hết hạn hơn hai giờ.
+
+Trước khi dùng ở môi trường thật vẫn cần **phê duyệt schema/migration và triển khai riêng** theo AGENTS.md §4. Công việc review đã cụ thể trong SQL/source/test; chưa có phê duyệt áp dụng. Sau khi được phép: đối chiếu definitions/history của môi trường đích, backup, tạo migration qua workflow hiện hành từ đề xuất, thử trên staging, áp dụng đúng một lần, deploy Edge với JWT verification rồi kiểm tra quyền/RPC qua HTTP. Chỉ phát hành frontend khi `check:backend` thấy attendance capability v1. Không tự reset, chạy lại migration v3, hoặc lấy thành công của mock làm bằng chứng Supabase thật.
+
+### Thời gian, QR và vị trí
+
+| Quy tắc | Giá trị thực thi |
+| --- | --- |
+| Mặc định bật | Tắt; chỉ Thiệp mời + snapshot thiệp nhóm + đã công khai + đã bật mới đủ điều kiện |
+| Bán kính | 100 m; số nguyên 10–1.000 m ở frontend/backend |
+| Hai đợt | Mỗi đợt đúng 900 giây, mở bao gồm biên đầu, đóng loại trừ biên cuối |
+| Mặc định đợt 1 | Trung điểm ±7 phút 30 giây |
+| Mặc định đợt 2 | 15 phút cuối sự kiện |
+| Lịch cần chỉnh | Mặc định bỏ trống nếu thời lượng dưới 45 phút hoặc trên 24 giờ; lịch nhập phải đủ hai đợt, theo thứ tự, không chồng, nằm trong sự kiện |
+| Ví dụ 08:00–10:00 | Đợt 1: 08:52:30–09:07:30; đợt 2: 09:45:00–10:00:00, UTC+7 |
+| Chu kỳ QR | 5 giây; số nguyên 3–60 giây; slot theo giờ server |
+| Thời hạn chấp nhận | Đến hết slot + tối đa 1 giây dung sai; tuyệt đối không vượt giờ đóng đợt, không nhận khi tắt/ẩn/sai loại/cấu hình đổi |
+| Định vị | Mỗi đợt lấy mới; tuổi tối đa 30 giây, dung sai tương lai 5 giây; accuracy >0 và ≤min(50 m, bán kính/2) |
+| Khoảng cách | Haversine ≤ bán kính; không cộng accuracy vào bán kính |
+
+Mã QR là token ngẫu nhiên 244 bit do PostgreSQL sinh và tra cứu, không phải nội dung client có thể tự ký. Nhiều sinh viên có thể dùng chung mã, không tiêu thụ mã khi quét. Trình chiếu xóa QR hết hạn bằng thời lượng từ server, trừ thời gian request, và ẩn QR khi lỗi mạng; quay lại tab yêu cầu mã mới. QR version 4, mức sửa lỗi L, byte mode/mask 0; encoder/decoder nội bộ chỉ phục vụ định dạng `HSV1:` này, không phải máy quét QR tổng quát. Scanner tải khi cần và có sửa lỗi Reed–Solomon; cần kiểm chứng thêm góc máy/ánh sáng/camera thật trước vận hành.
+
+Tọa độ `!3d…!4d…` hoặc query tọa độ tường minh từ Maps chỉ là **ghim gợi ý**; `@lat,lng` là tâm camera nên không dùng làm ghim địa điểm. Bộ chọn tự thử đọc link khi mở. Edge chỉ theo HTTPS các host Google Maps cho phép, tối đa năm bước, timeout 5 giây, kiểm từng redirect, không đọc HTML tùy ý hoặc chuyển cookies. Không xác định được thì báo rõ, cho tìm qua Nominatim/OpenStreetMap, nhấp/phím mũi tên hoặc nhập tọa độ rồi xác nhận. Không dùng API key/dịch vụ trả phí mới. Tile/search phụ thuộc mạng và chính sách dịch vụ công cộng; khi lỗi có nhập tọa độ thủ công. Giữ attribution OSM, chỉ tìm sau thao tác và cách nhau ít nhất 1,1 giây; không autocomplete hay tải bản đồ cho mọi thiệp.
+
+### Sinh viên, bảo mật và giới hạn
+
+Popup chỉ tự mở trong đợt server đang cho phép; mỗi đợt được đánh dấu đã thông báo trong session storage, reload cùng tab không tự bật lại, vẫn có nút mở. Kiểm tra lại mỗi 3 giây và khi quay lại tab/có mạng. Điện thoại khóa hoặc trình duyệt bị hệ điều hành tạm dừng không bảo đảm hiện popup đúng lúc.
+
+Khóa xác thực 32 byte từ Web Crypto được lưu localStorage theo sự kiện, tạo/đọc qua Web Locks để các tab không tạo hai khóa. Kiểm tra lưu/đọc lại trước khi xin vị trí/camera; thiết lập liên kết server chỉ sau lượt đầu thành công. Một MSSV/bản ghi chỉ thuộc một hồ sơ trình duyệt; không tra cứu bằng MSSV, IP hoặc ID đoán được. Mất phản hồi có thể đọc lại kết quả của chính khóa đó mà không ghi lượt. Lỗi xác minh/trùng đợt dùng “Không thể ghi nhận điểm danh.”; lỗi không tiêu lượt và không chiếm MSSV.
+
+Chỉnh họ tên/MSSV nhiều lần từ kết quả, kể cả ngoài đợt hoặc sau đợt 2, vẫn giữ UUID, khóa, sự kiện và mốc. UNIQUE chặn MSSV của bản ghi khác, không gộp; lỗi giữ nội dung đang sửa. Không cần login sinh viên, email/OTP hoặc thẻ sinh viên.
+
+**Giới hạn cố hữu:** không có cách chuẩn đáng tin để chặn mọi chế độ ẩn danh hoặc xác minh duy nhất điện thoại vật lý. Playwright dùng context riêng và vẫn lưu khóa được; điều này không chứng minh trình duyệt thường. Hồ sơ mới với MSSV mới từ lượt đầu vẫn có thể vượt ràng buộc. Xóa dữ liệu có thể làm mất khả năng hoàn thành lượt sau; không có tự phục hồi/chuyển thiết bị. Không dùng fingerprint hoặc khôi phục cookie đã xóa. GPS có sai số và có thể bị giả; họ tên/MSSV là tự khai, không xác minh danh tính. Chưa kiểm camera/GPS trên điện thoại thật, chế độ Private của Safari/iOS hoặc hành vi keyboard/safe-area của mọi máy.
+
+### Kiểm thử và bằng chứng của nhánh
+
+Chạy từ repository bằng dependencies đã cài:
+
+```sh
+npm run typecheck
+npm run lint
+npm test -- --maxWorkers=4
+npm run test:e2e -- --workers=4
+npm run test:attendance:concurrency
+npm run build
+```
+
+Runner concurrency dùng PostgreSQL 18 đã có tại `C:/Program Files/PostgreSQL/18/bin`; có thể truyền `HSV_PG_BIN` cho riêng process. Nó tự tạo cluster synthetic trong `.local/attendance/concurrency/`, port loopback 55449, không đọc connection string/credential và luôn dừng server sau chạy. Không dùng runner live/RLS ghi dữ liệu thật cho đợt này.
+
+Unit/SQL kiểm loại thiệp/nhóm, cấu hình, vị trí, lịch/biên, QR giả/hết hạn/sai sự kiện/đợt, dung sai, nhiều sinh viên chung mã, ownership, lượt lặp, sửa nhiều lần và rollback. Hai phiên PostgreSQL độc lập kiểm đụng MSSV, trùng lượt, cùng sửa sang MSSV mới và hai MSSV cùng liên kết một browser. Browser kiểm popup, quyền bị từ chối, video canvas được decoder thật đọc, cleanup, reload/mất khóa, mạng mất sau ghi, đổi giờ máy/đổi đợt, editor dirty/leave guard, công khai và thiệp mặc định; bộ cũ bảo vệ nhạc, cuộn, màu, alias và snapshot.
+
+Ảnh `{config,pin,display,prepare,scan,success,failure,edit}-{320,390,768,1440}.png` trong `.local/attendance/` được tạo bởi test và xem trực quan. `playwright-report/` là báo cáo browser; concurrency có `result.json` riêng theo timestamp. Tất cả ignored, chỉ fixture synthetic. Không đánh dấu các giới hạn thiết bị/ẩn danh/camera thật là PASS.
+
+Kết quả local ngày 23/11/2026:
+
+| Nhóm | Kết quả | Bằng chứng ignored |
+| --- | --- | --- |
+| Typecheck, lint, production build | PASS; build chạy `tsc -b` trước Vite | `build-final.log`, `lint-final.log` |
+| Unit/SQL | 155 PASS, 0 lỗi | `unit-final.json` |
+| Toàn bộ browser suite | 195 PASS, 39 skipped, 0 lỗi, 0 flaky; skipped tránh lặp các ma trận viewport trong project mobile | `e2e-final.log` |
+| PostgreSQL với hai kết nối độc lập | PASS: trùng MSSV, trùng lượt, sửa MSSV đồng thời, ràng buộc browser, UUID/mốc ổn định | `concurrency-final.log`, `concurrency/*/result.json` |
+| Rà soát cuối sau sửa FK/revision và bảng mobile | 9 SQL PASS; 6 browser PASS, 4 skipped do ma trận viewport chỉ chạy một project | `database-final.json`, `visual-final.json` |
+| Giao diện và khả năng truy cập | PASS trong phạm vi browser: 320/390/768/1440px, focus/Escape, axe dialog, bàn phím mô phỏng, lỗi/mất mạng; không thay cho screen reader hay máy thật | Các ảnh PNG cùng thư mục |
+
+Tên log trong bảng đều nằm dưới `.local/attendance/`. Bộ browser dùng RPC/network/media mock; SQL và concurrency chạy implementation backend thực trên database synthetic, chưa phải kiểm thử tích hợp qua Supabase HTTP/Edge đã deploy. Sửa cuối kiểm tra việc bỏ người nhận mặc định: FK trả lựa chọn rỗng và revision mới về editor, nên lần lưu tiếp theo không xung đột giả. Bảng kết quả giữ nguyên một hàng sau sửa thông tin và cuộn ngang trên điện thoại.

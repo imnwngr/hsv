@@ -1,5 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
-import { appendFileSync } from "node:fs";
+import { appendFileSync, mkdirSync } from "node:fs";
 import { randomUUID } from "node:crypto";
 const url = process.env.VITE_SUPABASE_URL;
 let lastRequest = "input";
@@ -184,6 +184,7 @@ try {
   ]);
   results.push("UI: NOT RUN by API runner");
   const report = `\n## Targeted save_event ACL live runner ${new Date().toISOString()}\nFixture: ${code}\n\n${results.map((s) => "- " + s).join("\n")}\n`;
-  appendFileSync("VERIFICATION.md", report);
+  mkdirSync(".local/legacy-checks", { recursive: true });
+  appendFileSync(".local/legacy-checks/rpc-execute-live.md", report);
   console.log(results.join("\n"));
 }

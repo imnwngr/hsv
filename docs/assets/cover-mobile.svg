@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="520" viewBox="0 0 640 520" role="img" aria-labelledby="title desc">
+  <title id="title">Mỗi sự kiện, một dấu ấn</title>
+  <desc id="desc">Minh họa Thiệp mời màu xanh Hội và Thiệp chúc màu đỏ son.</desc>
+  <defs><pattern id="linen" width="7" height="7" patternUnits="userSpaceOnUse"><path d="M0 1H7M1 0V7" stroke="#fff" stroke-opacity=".045" stroke-width=".7"/></pattern></defs>
+  <rect width="640" height="520" rx="12" fill="#123e57"/>
+  <rect width="640" height="520" rx="12" fill="url(#linen)"/>
+  <path d="M20 20H620V500H20Z" fill="none" stroke="#d7c399" stroke-opacity=".42"/>
+  <g font-family="system-ui, -apple-system, 'Segoe UI', sans-serif">
+    <text x="48" y="100" fill="#fcf8ef" font-size="49" font-weight="650" letter-spacing="-1.2">Mỗi sự kiện,</text>
+    <text x="48" y="158" fill="#fcf8ef" font-size="49" font-weight="650" letter-spacing="-1.2">một dấu ấn.</text>
+    <g transform="translate(73 210) rotate(-6 125 130)">
+      <rect x="6" y="8" width="245" height="244" rx="4" fill="#082b3c" fill-opacity=".4"/>
+      <rect width="245" height="244" rx="4" fill="#e8eff3"/>
+      <rect x="16" y="16" width="213" height="212" rx="2" fill="none" stroke="#174b78" stroke-opacity=".35"/>
+      <path d="M100 58h45M123 36v44" stroke="#174b78"/>
+      <circle cx="123" cy="58" r="13" fill="#e8eff3" stroke="#174b78"/>
+      <text x="123" y="132" text-anchor="middle" fill="#123e57" font-size="34" font-weight="600">Thiệp mời</text>
+      <path d="M64 169h117M86 183h73" stroke="#174b78" stroke-opacity=".4"/>
+    </g>
+    <g transform="translate(321 236) rotate(6 125 110)">
+      <rect x="6" y="8" width="245" height="224" rx="4" fill="#082b3c" fill-opacity=".4"/>
+      <rect width="245" height="224" rx="4" fill="#fbf4e8"/>
+      <rect x="16" y="16" width="213" height="192" rx="2" fill="none" stroke="#873c42" stroke-opacity=".38"/>
+      <path d="M101 52h42M122 32v40" stroke="#873c42"/>
+      <circle cx="122" cy="52" r="12" fill="#fbf4e8" stroke="#873c42"/>
+      <text x="122" y="124" text-anchor="middle" fill="#682f34" font-size="33" font-weight="600">Thiệp chúc</text>
+      <g transform="translate(72 169)"><circle r="7" fill="#174b78"/><circle cx="25" r="7" fill="#173f36"/><circle cx="50" r="7" fill="#873c42"/><circle cx="75" r="7" fill="#614478"/><circle cx="100" r="7" fill="#9b6727"/></g>
+    </g>
+  </g>
+</svg>

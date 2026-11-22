@@ -1,37 +1,135 @@
-# Sự kiện Hội Sinh viên CTUT · 3.0.0
+<p align="center">
+  <img src="public/logos/logo-hoi-192.webp" width="72" height="72" alt="Hội Sinh viên Việt Nam">
+</p>
 
-Nền tảng sự kiện Hội Sinh viên CTUT. Source 3.0.0 bổ sung Thiệp mời/Thiệp chúc, màu riêng cho từng sự kiện và luồng thêm Editor có trạng thái khôi phục. Giữ typography tiếng Việt, vật liệu giấy/dệt, opening và nhạc Liquid Glass. **Database và Edge v3 đã triển khai; Auth có callback cũ/mới; frontend HSV v3 chưa phát hành.** SMTP Resend đã hoàn tất theo xác nhận của người dùng: đã tự cấu hình và nhận email thử thành công. Đây chưa phải bằng chứng kiểm thử toàn bộ luồng mời Editor production. Đợt Git/tài liệu này không thay cờ gửi lời mời hoặc tạo tag. Xem [HSV-V3-PLAN.md](HSV-V3-PLAN.md), [HSV-V3-MIGRATION.md](HSV-V3-MIGRATION.md) và [HSV-V3-VERIFICATION.md](HSV-V3-VERIFICATION.md).
+<h1 align="center">Sự kiện Hội Sinh viên CTUT</h1>
 
-Repository: [imnwngr/hsv](https://github.com/imnwngr/hsv). Source v3 nằm trên nhánh `hsv-v3`; nhánh mặc định `main` chưa được cập nhật trong lần đổi tên. Remote Git chính thức là `https://github.com/imnwngr/hsv.git`.
+<p align="center">
+  Nền tảng quản lý và chia sẻ sự kiện của Hội Sinh viên CTUT.<br>
+  Từ nội dung sự kiện đến lời gửi dành riêng cho từng người nhận.
+</p>
 
+<p align="center">
+  <strong>3.0.0</strong> &nbsp; · &nbsp;
+  <a href="#hai-loai-thiep">Hai loại thiệp</a> &nbsp; · &nbsp;
+  <a href="#chay-local">Chạy local</a> &nbsp; · &nbsp;
+  <a href="docs/releases/v3.0.0.md">Release&nbsp;notes</a>
+</p>
+
+<p align="center">
+  <a href="https://github.com/imnwngr/hsv/actions/workflows/deploy.yml?query=branch%3Amain"><img src="https://github.com/imnwngr/hsv/actions/workflows/deploy.yml/badge.svg?branch=main" alt="Kết quả kiểm thử CI trên main"></a>
+</p>
+
+<picture>
+  <source media="(max-width: 640px)" srcset="docs/assets/cover-mobile.svg">
+  <img src="docs/assets/cover.svg" width="1200" alt="Hai loại thiệp với chất liệu giấy, xanh Hội và đỏ son. Mỗi sự kiện, một dấu ấn.">
+</picture>
+
+> [!NOTE]
+> Source 3.0.0 đã vào `main` và vượt qua CI. **Frontend Pages chưa phát hành v3** tại lần đối chiếu 20/11/2026; badge xanh thể hiện kiểm thử, không xác nhận deploy. Theo dõi [trạng thái và điều kiện phát hành](docs/OPERATIONS.md#trang-thai).
+
+<a id="hai-loai-thiep"></a>
+## Hai loại thiệp, cùng một nơi quản lý
+
+| Thiệp mời | Thiệp chúc |
+| :--- | :--- |
+| **Trân trọng kính mời** | **Trân trọng chúc mừng** |
+| Dành cho lời mời tham dự sự kiện. | Dành cho lời chúc gửi đến cá nhân hoặc tập thể. |
+| Có ngày, giờ bắt đầu/kết thúc và địa điểm. | Không yêu cầu hoặc hiển thị lịch, địa điểm, bản đồ. |
+
+Cả hai giữ lời xưng hô, tên, chức vụ hoặc mô tả của người nhận. Mô tả sự kiện, quote, chương trình và phần kết dùng chung cấu trúc. Khi đổi loại trong editor, dữ liệu đã nhập được giữ để có thể đổi lại.
+
+### Màu riêng cho mỗi sự kiện
+
+Chọn Xanh Hội, Lá xanh, Đỏ son, Tím mực, Hổ phách hoặc một màu tùy chỉnh. Xem trước trên chất liệu giấy và dệt, khôi phục mặc định khi cần, rồi lưu cùng sự kiện. Màu áp dụng cho các thiệp thuộc sự kiện đó; thông tin người nhận vẫn giữ theo snapshot.
+
+### Nội dung dành cho từng người nhận
+
+Tạo sự kiện → chọn loại và màu → chọn khách mời → lưu hoặc công bố → sao chép link riêng. Danh bạ hỗ trợ cá nhân/nhóm, sắp xếp và primary alias. Người nhận mở thiệp với hiệu ứng giấy, nội dung theo nhịp cuộn và điều khiển nhạc Liquid Glass; chế độ giảm chuyển động vẫn giữ nội dung đọc được.
+
+### Quản trị có phân quyền
+
+Editor quản lý nội dung; Admin quản lý thêm quyền Editor. Admin nhập email trong một luồng: tài khoản đã có được cấp quyền, email mới đi qua lời mời khi server cho phép. Giao diện phân biệt chờ nhận lời mời, lỗi một phần và cần khôi phục. Quyền được kiểm tra tại server/RLS; retry không tự gửi lại email.
+
+<a id="chay-local"></a>
 ## Chạy local
 
-Redesign frontend ngày 11/11/2026: xem [DESIGN.md](DESIGN.md), [UI-REDESIGN-PLAN.md](UI-REDESIGN-PLAN.md), [UI-REDESIGN-VERIFICATION.md](UI-REDESIGN-VERIFICATION.md) và [INVITATION-SCROLL-FIX-VERIFICATION.md](INVITATION-SCROLL-FIX-VERIFICATION.md) để đối chiếu source, kiểm thử và giới hạn performance. Screenshots/video kiểm thử nằm trong `.local/` và không được commit. Các báo cáo nghiệm thu local và báo cáo live lịch sử không chứng nhận deployment production mới.
+Cần **Node.js 24**, npm và một môi trường Supabase đã có schema v3, được phép sử dụng. Kho này không tự tạo database hoặc seed production khi khởi động.
 
-Cần Node.js 24 và npm; dùng lockfile: `npm ci`. Tạo `.env.local` từ `.env.example`, cấu hình `VITE_SUPABASE_URL` và `VITE_SUPABASE_PUBLISHABLE_KEY` của project được phép dùng. Các biến Vite là công khai trên frontend; không đặt service_role, mật khẩu hoặc token riêng. Chạy `npm run dev`, mở `/hsv/`. Không commit `.env.local`. Chưa áp dụng migration v3 thì thao tác lưu bị chặn rõ ràng, không giả vờ lưu loại thiệp/màu.
-
-## SQL và môi trường dữ liệu
-
-- `supabase/migrations/202611030001_foundation.sql` và `supabase/seed.sql`: lịch sử v1.0, không dùng làm quy trình nâng cấp production.
-- `supabase/rebuild-v110/`: hồ sơ clean rebuild đã thực hiện trên production, bao gồm script destructive và schema/seed. **Không chạy lại REBUILD.sql hoặc các fragment reset**; chúng không phải quy trình setup thông thường.
-- `supabase/migrations/202611040001_v110.sql`, `202611040002_venue_storage.sql`: phương án nâng cấp lịch sử đã bỏ, không chạy trên production.
-- `supabase/migrations/202611050001_ui_refinement.sql`: refinement đã COMMIT và hậu kiểm production. Không chạy lại.
-- Các file `*preflight*`, `*postflight*`, `supabase/hotfixes/` và hồ sơ review phục vụ kiểm tra/audit. Kiểm tra nội dung và project trước khi chạy; hậu kiểm chỉ đọc không thay cho Auth/RLS live tests.
-
-Không chạy tự động chuỗi migrations cũ hoặc `supabase db push` trên production. Hai migration ngày 20/11/2026 **đã áp dụng**, không replay; mapping version thực tế, backup và thử phục hồi nằm trong [hướng dẫn v3](HSV-V3-MIGRATION.md). Người dùng đã chấp thuận thay đổi trong phạm vi HSV 3.0.0; điều kiện an toàn và quyền kết nối vẫn phải đáp ứng.
-
-### Project mới riêng biệt
-
-Tạo project Supabase mới, xác nhận đây là môi trường trống và độc lập. Chuẩn bị, review riêng một baseline không destructive từ `supabase/rebuild-v110/02-schema.sql` và seed canonical; refinement hiện tại chứa guard/data update gắn với preflight production, **không chạy nguyên xi trên project mới**. Thiết kế migration tương thích và test trên môi trường mới trước khi áp dụng. Tạo tài khoản qua Supabase Auth; quản trị viên có quyền SQL cấp membership bằng UUID lấy tại Dashboard:
-
-```sql
-insert into public.admin_users(user_id) values ('<UUID_AUTH_ADMIN>') on conflict do nothing;
+```sh
+git clone https://github.com/imnwngr/hsv.git
+cd hsv
+npm ci
 ```
 
-Không đặt UUID tài khoản production, mật khẩu hoặc credentials vào repository. Không dùng REBUILD.sql để setup project mới.
+Sao chép `.env.example` thành `.env.local`, điền hai giá trị của môi trường được cấp:
 
-## Maps, kiểm thử và phát hành
+```dotenv
+VITE_SUPABASE_URL=https://YOUR_PROJECT.supabase.co
+VITE_SUPABASE_PUBLISHABLE_KEY=YOUR_PUBLISHABLE_KEY
+```
 
-Địa điểm hỗ trợ Google Maps URL/Place ID thủ công. Nếu dùng API key, hạn chế theo HTTP referrer, API và quota. Chạy `npm run typecheck`, `npm run lint`, `npm test`, `npm run test:e2e`, `npm run build`; browser tests hiện dùng mocks, còn native sandbox và kiểm chứng production được ghi riêng trong [HSV-V3-VERIFICATION.md](HSV-V3-VERIFICATION.md).
+Các biến `VITE_*` được đưa vào frontend. Chỉ dùng publishable key; không đặt service-role key, mật khẩu hoặc token quản trị vào đây. `.env.local` đã được Git ignore. Google Maps API key/Map ID là tùy chọn; cấu hình và hạn chế khóa xem [vận hành](docs/OPERATIONS.md#cau-hinh).
 
-Vite/Router dùng `/hsv/`, thiệp dùng `/thiep-moi/:code/:alias` hoặc `/thiep-chuc/:code/:alias`. GitHub Pages fallback dùng `404.html`, deep link có thể trả HTTP 404 ban đầu trước khi client khôi phục route. Workflow kiểm tra main/hsv-v3; deploy chỉ tại repo `imnwngr/hsv`, branch main, `HSV_V3_PRODUCTION_READY=true` và capability backend hợp lệ. Không bật gate khi chưa có bằng chứng production. Push nhánh triển khai không deploy Pages. Kiểm tra HTTP sau rename ngày 20/11: `/bookclub/` trả 404; `/hsv/` trả HTML BookClub cũ và còn tham chiếu hai script dưới `/bookclub/assets/`, đều trả 404. Đây chưa phải frontend HSV v3; cần xử lý phát hành trong đợt riêng. Không rollback mù về v2 vì Thiệp chúc có thời gian null.
+```sh
+npm run dev
+```
+
+Mở **http://localhost:5173/hsv/**, đăng nhập quản trị tại **http://localhost:5173/hsv/admin/login**. Nếu cổng đã bận, dùng URL Vite in ra và giữ phần `/hsv/`. Với một Supabase project trống, đọc [chuẩn bị môi trường mới](docs/OPERATIONS.md#moi-truong-moi) trước.
+
+## Kiểm thử và build
+
+```sh
+npm run typecheck
+npm run lint
+npm test
+npx playwright install chromium
+npm run test:e2e
+npm run build
+```
+
+CI trên `main` đã xác nhận **139 unit tests**, **171 browser tests** và **12 nhóm native account checks**; 35 browser checks không chạy lặp trong project mobile. Browser suite dùng API/Storage mock; native checks chạy Supabase và Mailpit trên runner tách biệt. Xem [phạm vi bằng chứng](docs/releases/v3.0.0.md#kiem-thu) để phân biệt với production.
+
+<details>
+<summary><strong>Cấu trúc source và công nghệ</strong></summary>
+
+```text
+src/                 React 19, TypeScript, Router, TanStack Query
+  components/        Thành phần giao diện dùng chung
+  features/          API sự kiện, danh bạ, thiệp và Auth
+  pages/             Trang công khai và quản trị
+  styles/            Typography, vật liệu, màu, chuyển động
+supabase/            SQL, migrations lịch sử và Edge Function
+tests/               Unit, SQL và browser tests
+scripts/             Kiểm tra backend, native sandbox và QA
+docs/                Vận hành, nguồn assets, release notes
+```
+
+Vite 8 và Tailwind CSS 4 xây dựng frontend. Supabase cung cấp PostgreSQL, Auth, Storage và Edge Function `manage-editors`. Rich text dùng Tiptap; các trang quản trị được tải theo route. Font K2D được tự host, có subset tiếng Việt.
+
+</details>
+
+## Phát hành
+
+Địa chỉ Pages: **https://imnwngr.github.io/hsv/**. Workflow chỉ deploy từ `main` tại repo này khi verify/native checks PASS, `HSV_V3_PRODUCTION_READY=true` và backend capability phù hợp. Không dùng việc merge hoặc badge CI xanh thay cho kiểm tra deployment.
+
+Database không được tự migrate từ frontend. Hai migration v3 đã có trong history production; không chạy lại theo tên file. Đường dẫn `/bookclub/` hiện không có bridge chuyển hướng đã kiểm chứng. Quy trình phát hành, callback và containment nằm trong [hướng dẫn vận hành](docs/OPERATIONS.md).
+
+## Tài liệu
+
+| Cần tìm | Đọc tại |
+| :--- | :--- |
+| Thiết kế, hai loại thiệp, màu và chuyển động | [Hệ thiết kế](DESIGN.md) |
+| Schema hiện tại, môi trường, Auth, migration và Pages | [Vận hành](docs/OPERATIONS.md) |
+| Thay đổi và giới hạn của bản 3.0.0 | [Release notes](docs/releases/v3.0.0.md) |
+| Nguồn logo, font và dữ liệu kiểm thử | [Nguồn assets](docs/ASSETS.md) |
+
+Các kế hoạch và biên bản nghiệm thu đã hoàn tất được giữ trong lịch sử Git, không tiếp tục nằm ở cây source hiện hành. Log, screenshot kiểm thử và backup không được commit.
+
+<p align="center">
+  <img src="public/logos/logo-doan-192.webp" width="48" height="48" alt="Đoàn Thanh niên">
+  &nbsp;&nbsp;
+  <img src="public/logos/logo-hoi-192.webp" width="48" height="48" alt="Hội Sinh viên">
+  &nbsp;&nbsp;
+  <img src="public/logos/logo-ctut-192.webp" width="48" height="48" alt="Trường Đại học Kỹ thuật – Công nghệ Cần Thơ">
+</p>

@@ -52,7 +52,7 @@ Nhạc khởi tạo 25%, thử autoplay theo chính sách trình duyệt, tiếp
 
 Admin nhập email, hệ thống tự phân biệt tài khoản hiện có và email mới; quyền mặc định Editor. Không có select invite/grant. Nút disabled trong request, chống double-click, thông báo kết quả ngay trong dialog; Escape/focus restoration khi không busy. Các trạng thái đã cấp quyền, chờ nhận lời mời, chưa xác nhận email, đang xử lý, lỗi một phần và cần khôi phục khác nhau. Có danh sách yêu cầu cần kiểm tra. Không khẳng định email đã đến hộp thư.
 
-Session và quyền Admin kiểm lại ở server/RPC; không dựa vào ẩn nút. Retry không tự gửi lại email; revoke vô hiệu hóa worker cũ, retry của yêu cầu vừa bị thu hồi không tự cấp lại. Chi tiết kỹ thuật và giới hạn nằm trong [HSV-V3-MIGRATION.md](HSV-V3-MIGRATION.md), không đưa vào luồng thao tác thông thường.
+Session và quyền Admin kiểm lại ở server/RPC; không dựa vào ẩn nút. Retry không tự gửi lại email; revoke vô hiệu hóa worker cũ, retry của yêu cầu vừa bị thu hồi không tự cấp lại. Chi tiết kỹ thuật và giới hạn nằm trong [hướng dẫn vận hành](docs/OPERATIONS.md), không đưa vào luồng thao tác thông thường.
 
 Trạng thái gửi lời mời được đọc khi mở dialog: đang kiểm tra, đang tắt, đã mở hoặc không kiểm tra được. Khi đang tắt, Admin vẫn thêm tài khoản có sẵn; thông báo email mới không hứa gửi thành công. Lỗi chưa bắt đầu thao tác dùng “Thử lại”; kết quả chưa xác định/lỗi một phần dùng “Kiểm tra và khôi phục”. Khoảng cách riêng form là 1rem, bỏ margin đoạn văn chồng lên grid để nút thao tác vẫn nằm trong viewport ở 320/390/430px. Các vùng thông báo giữ `role=status`; native dialog giữ focus/Escape.
 
@@ -60,4 +60,10 @@ Trạng thái gửi lời mời được đọc khi mở dialog: đang kiểm tr
 
 Design-team đã đọc catalog, dùng hệ thiết kế hiện có làm hướng. Hallmark dùng hướng dẫn nhất quán cho component, không chạy scaffold/theme mới; better-accessibility dùng semantics, focus và error recovery; Anti-slop `during` theo global preference và audit cuối. Không gọi dịch vụ tạo ảnh, thêm GSAP hoặc external AI worker. Không tuyên bố đã chạy Hallmark sloplint.
 
-Kiểm tra Chrome/Playwright ở 320/390/430/768/1024/1440/1920px, keyboard, axe, reduced motion, scroll thuận/ngược và các trạng thái. Kết quả và giới hạn: [HSV-V3-VERIFICATION.md](HSV-V3-VERIFICATION.md). Ảnh/log trong `.local/hsv-v3/`, ignored. Các báo cáo `UI-REDESIGN-*`, `INVITATION-2.0-*`, `INVITATION-3.0-*`, `INVITATION-SCROLL-FIX-*` là lịch sử; “Invitation 3.0” trong báo cáo cũ là vòng thiết kế, không phải release HSV 3.0.0.
+Kiểm tra Chrome/Playwright ở 320/390/430/768/1024/1440/1920px, keyboard, axe, reduced motion, scroll thuận/ngược và các trạng thái. Kết quả và giới hạn: [release notes](docs/releases/v3.0.0.md#kiem-thu). Ảnh/log trong `.local/hsv-v3/`, ignored. Các biên bản cũ nằm trong lịch sử Git; release notes và hướng dẫn vận hành là tài liệu hiện hành.
+
+## README trên GitHub
+
+README dùng logo chính thức, xanh Hội và giấy ấm từ hệ thiết kế này. Hình bìa SVG chỉ minh họa loại thiệp/màu, không thay bằng chứng giao diện; bản mobile có bố cục riêng. Nội dung chính là chữ Markdown/HTML có thể chọn, tìm và đọc bằng công cụ hỗ trợ. Typography do GitHub quyết định; không tải font hoặc dùng CSS tùy ý. ENERGY 2 / RHYTHM 1 / MOTION 1: tài liệu tĩnh, ưu tiên đọc và đi đến hướng dẫn.
+
+Bốn mức nội dung: giới thiệu nền tảng, tính năng, chạy/kiểm thử, tài liệu vận hành. Badge CI có liên kết và nhãn đúng phạm vi kiểm thử; trạng thái deploy được ghi riêng. Logo Đoàn/Hội/CTUT giữ thứ tự tương đối. Hình bìa nằm trong docs/assets để không tăng payload ứng dụng.

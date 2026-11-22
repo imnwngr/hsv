@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="420" viewBox="0 0 1200 420" role="img" aria-labelledby="title desc">
+  <title id="title">Mỗi sự kiện, một dấu ấn</title>
+  <desc id="desc">Minh họa Thiệp mời và Thiệp chúc trên nền giấy, cùng năm màu của sự kiện.</desc>
+  <defs>
+    <pattern id="linen" width="7" height="7" patternUnits="userSpaceOnUse"><path d="M0 1H7M1 0V7" stroke="#fff" stroke-opacity=".045" stroke-width=".7"/></pattern>
+    <pattern id="paper" width="11" height="13" patternUnits="userSpaceOnUse"><path d="M2 3h2M7 10h1" stroke="#927d5c" stroke-opacity=".13"/></pattern>
+    <linearGradient id="light" x2="1" y2="1"><stop stop-color="#fff" stop-opacity=".06"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient>
+  </defs>
+  <rect width="1200" height="420" rx="12" fill="#123e57"/>
+  <rect width="1200" height="420" rx="12" fill="url(#linen)"/>
+  <rect width="1200" height="420" rx="12" fill="url(#light)"/>
+  <path d="M34 34H1166V386H34Z" fill="none" stroke="#d7c399" stroke-opacity=".42"/>
+  <g font-family="system-ui, -apple-system, 'Segoe UI', sans-serif">
+    <text x="72" y="98" fill="#c7dddf" font-size="20" font-weight="500">HỘI SINH VIÊN CTUT</text>
+    <text x="68" y="185" fill="#fcf8ef" font-size="62" font-weight="650" letter-spacing="-1.6">Mỗi sự kiện,</text>
+    <text x="68" y="259" fill="#fcf8ef" font-size="62" font-weight="650" letter-spacing="-1.6">một dấu ấn.</text>
+    <text x="72" y="321" fill="#d2e0df" font-size="21">Thiệp mời · Thiệp chúc · Màu sắc riêng</text>
+    <g transform="translate(685 57) rotate(-7 150 145)">
+      <rect x="8" y="10" width="246" height="284" rx="4" fill="#082b3c" fill-opacity=".32"/>
+      <rect width="246" height="284" rx="4" fill="#e8eff3"/>
+      <rect width="246" height="284" rx="4" fill="url(#paper)"/>
+      <rect x="17" y="17" width="212" height="250" rx="2" fill="none" stroke="#174b78" stroke-opacity=".32"/>
+      <path d="M101 62h44M123 40v44" stroke="#174b78" stroke-width="1.2"/>
+      <circle cx="123" cy="62" r="13" fill="#e8eff3" stroke="#174b78"/>
+      <text x="123" y="130" text-anchor="middle" fill="#174b78" font-size="18">Trân trọng kính mời</text>
+      <text x="123" y="177" text-anchor="middle" fill="#123e57" font-size="32" font-weight="600">Thiệp mời</text>
+      <path d="M66 207h114M87 219h72" stroke="#174b78" stroke-opacity=".35"/>
+    </g>
+    <g transform="translate(902 93) rotate(7 112 134)">
+      <rect x="7" y="10" width="221" height="270" rx="4" fill="#082b3c" fill-opacity=".3"/>
+      <rect width="221" height="270" rx="4" fill="#fbf4e8"/>
+      <rect width="221" height="270" rx="4" fill="url(#paper)"/>
+      <rect x="17" y="17" width="187" height="236" rx="2" fill="none" stroke="#873c42" stroke-opacity=".38"/>
+      <path d="M91 59h39M110 40v38" stroke="#873c42" stroke-width="1.2"/>
+      <circle cx="110" cy="59" r="12" fill="#fbf4e8" stroke="#873c42"/>
+      <text x="110" y="128" text-anchor="middle" fill="#873c42" font-size="17">Trân trọng chúc mừng</text>
+      <text x="110" y="173" text-anchor="middle" fill="#682f34" font-size="31" font-weight="600">Thiệp chúc</text>
+      <g transform="translate(61 211)"><circle r="7" fill="#174b78"/><circle cx="25" r="7" fill="#173f36"/><circle cx="50" r="7" fill="#873c42"/><circle cx="75" r="7" fill="#614478"/><circle cx="100" r="7" fill="#9b6727"/></g>
+    </g>
+  </g>
+</svg>

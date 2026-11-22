@@ -154,6 +154,12 @@ Giữ các cột/schema mới cùng dữ liệu phát sinh. Không drop bảng, 
 
 Release notes chứa kết quả CI có link đến run. Logs, screenshots, trace, manifests và backup thuộc `.local/` hoặc thư mục bảo vệ ngoài repo. Bốn runner live lịch sử ghi báo cáo vào `.local/legacy-checks/`; chúng có thể ghi fixture lên database nên **không chạy chỉ để đọc trạng thái**.
 
+`npm run test:e2e` giữ đầy đủ test/assertion, ảnh lỗi và trace khi lỗi. Ảnh nghiệm thu hàng loạt của các ma trận redesign, vật liệu/nhạc và HSV v3 chỉ xuất khi chạy `npm run test:e2e:visual` (có thể truyền thêm `-- --project=desktop`). Cả hai lệnh chạy cùng bộ test; chế độ visual chỉ bật `HSV_CAPTURE_VISUALS=1`, không thay retries, timeout hoặc điều kiện deploy.
+
+Các ảnh này là bằng chứng để xem thủ công, không phải phép so sánh ảnh tự động. Giữ kiểm tra overflow, ảnh tải thành công, accessibility, focus, audio, reduced motion, dữ liệu và quyền trong lượt chạy mặc định. Không xóa test hồi quy chỉ vì đã PASS; test mang tên phiên bản cũ vẫn có thể bảo vệ hành vi đang sử dụng.
+
+Đo local ngày 23/11/2026: cùng 9 test `redesign viewport`, desktop Chrome, 2 worker, chạy tuần tự, bật xuất ảnh mất 57,74 giây; mặc định mất 41,69 giây (giảm 27,8%). Cả hai lượt đều PASS 9/9, không retry. Đây là số đo của nhóm ma trận này, không đại diện tốc độ toàn bộ E2E hay CI. Báo cáo ở `.local/readme-review/e2e-{capture,default}-sequential.json`; không chạy hai lượt Playwright cùng lúc trong một checkout vì chúng dùng chung server và thư mục artifact.
+
 Kế hoạch, biên bản nghiệm thu và manual v1/v2 đã hoàn tất được lấy lại từ lịch sử Git khi cần. Chúng không còn là hướng dẫn hiện hành. Bộ SQL [rebuild-v110](../supabase/rebuild-v110/README.md) còn để phục vụ lịch sử và test; không phải công cụ setup/upgrade v3.
 
 Các bản gốc trước dọn dẹp được ghim tại commit `5d663574be5a2357c2b161385d1b4fe0d430a75f`, vẫn thuộc lịch sử `main` khi xóa nhánh `hsv-v3`:

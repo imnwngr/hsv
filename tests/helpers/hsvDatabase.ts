@@ -3,8 +3,7 @@ import { readFileSync } from "node:fs";
 export const adminId = "20000000-0000-4000-8000-000000000001";
 export const guestId = "10000000-0000-4000-8000-000000000001";
 export const sqlFile = (path: string) => readFileSync(path, "utf8");
-export async function hsvBaseline() {
-  const pg = new PGlite();
+export async function hsvBaseline(pg = new PGlite()) {
   await pg.exec(
     "create role anon;create role authenticated;create role service_role;create schema auth;create table auth.users(id uuid primary key,email text,email_confirmed_at timestamptz,invited_at timestamptz,banned_until timestamptz,is_anonymous boolean default false);create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;grant usage on schema auth,public to anon,authenticated,service_role;create schema storage;create table storage.buckets(id text primary key,name text,public boolean,file_size_limit bigint,allowed_mime_types text[]);create table storage.objects(id uuid primary key,bucket_id text,name text);",
   );

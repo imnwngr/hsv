@@ -3,6 +3,10 @@ import { validQuoteDocument } from "./quoteDocument";
 import { isAgendaIcon } from "./agendaIcons";
 import { reservedCodes, safeMapUrl } from "./domain";
 import { themeSchema } from "./eventTheme";
+import {
+  attendanceSchema,
+  attendanceIssues,
+} from "../features/attendance/model";
 export const codeSchema = z
   .string()
   .regex(
@@ -22,6 +26,8 @@ export const aliasSchema = z
   .max(80);
 export const eventSchema = z
   .object({
+    attendance_config: attendanceSchema.nullable().optional(),
+    default_invitation_id: z.string().nullable().optional(),
     event_type: z.enum(["invitation", "congratulation"]).optional(),
     theme: themeSchema.optional(),
     code: z.union([codeSchema, z.literal("")]),
@@ -91,6 +97,11 @@ export const eventSchema = z
         (v) => !v || safeMapUrl(v) !== null,
         "Dùng liên kết HTTPS Google Maps hợp lệ.",
       ),
+  })
+  .superRefine((v, ctx) => {
+    if (v.attendance_config)
+      for (const message of attendanceIssues(v.attendance_config, v))
+        ctx.addIssue({ code: "custom", path: ["attendance_config"], message });
   })
   .refine(
     (v) =>

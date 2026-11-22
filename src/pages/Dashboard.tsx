@@ -19,6 +19,7 @@ import { Confirm } from "../components/Confirm";
 import type { ClubEvent } from "../types/domain";
 import { Plus, ArrowUpRight, CalendarDays } from "lucide-react";
 import { useClock } from "../hooks/useClock";
+import { PublicationSwitch } from "../features/events/PublicationSwitch";
 export default function Dashboard() {
   const now = useClock();
   const query = useQuery({
@@ -127,9 +128,7 @@ export default function Dashboard() {
           {filtered.map((event) => (
             <article className="panel admin-event" key={event.id}>
               <div className="admin-event-heading">
-                <span className={`status ${event.status}`}>
-                  {event.status === "published" ? "Đã công bố" : "Bản nháp"}
-                </span>
+                <PublicationSwitch event={event} />
                 <span className="event-code">{event.code}</span>
                 <span>{typeLabel(event.event_type)}</span>
               </div>

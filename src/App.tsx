@@ -14,6 +14,8 @@ const EventForm = lazy(() => import("./pages/EventForm"));
 const AcceptInvitation = lazy(() => import("./pages/AcceptInvitation"));
 const RoleDirectory = lazy(() => import("./pages/RoleDirectory"));
 const GuestDirectory = lazy(() => import("./pages/GuestDirectory"));
+const AttendanceDisplay = lazy(() => import("./pages/AttendanceDisplay"));
+const AttendanceResults = lazy(() => import("./pages/AttendanceResults"));
 import { AdminGuard } from "./features/admin/Auth";
 function Layout() {
   return <SiteLayout />;
@@ -51,6 +53,22 @@ export const router = createBrowserRouter(
         {
           element: <AdminGuard />,
           children: [
+            {
+              path: "admin/attendance/:eventCode/display",
+              element: (
+                <Suspense fallback={<Loading />}>
+                  <AttendanceDisplay />
+                </Suspense>
+              ),
+            },
+            {
+              path: "admin/attendance/:eventCode",
+              element: (
+                <Suspense fallback={<Loading />}>
+                  <AttendanceResults />
+                </Suspense>
+              ),
+            },
             {
               path: "admin",
               element: (

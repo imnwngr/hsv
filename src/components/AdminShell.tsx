@@ -58,6 +58,8 @@ export function AdminShell() {
       </nav>
     );
   }
+  if (/\/admin\/attendance\/[^/]+\/display\/?$/.test(pathname))
+    return <Outlet />;
   return (
     <>
       <Toaster richColors position="top-right" closeButton />

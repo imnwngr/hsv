@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, Navigate, useLocation, useParams } from "react-router-dom";
 import { eventPath, typeLabel } from "../lib/domain";
@@ -26,6 +26,9 @@ import { InvitationChapter } from "../components/InvitationChapter";
 import type { ClubEvent, Invitation } from "../types/domain";
 import "../styles/materials.css";
 import "../styles/chapters.css";
+const AttendanceCard = lazy(
+  () => import("../features/attendance/AttendanceCard"),
+);
 
 export default function InvitationPage() {
   const { eventCode = "", guestAlias = "" } = useParams();
@@ -68,6 +71,7 @@ function InvitationExperience({
   event: ClubEvent;
   invitation: Invitation;
 }) {
+  const { guestAlias = "" } = useParams();
   const [opened, setOpened] = useState(false);
   const congratulation = event.event_type === "congratulation";
   const greeting = congratulation
@@ -265,6 +269,11 @@ function InvitationExperience({
           ref={audio}
           path={event.music_path}
         />
+      )}
+      {!congratulation && invitation.kind === "group" && (
+        <Suspense fallback={null}>
+          <AttendanceCard event={event} alias={guestAlias} />
+        </Suspense>
       )}
     </article>
   );

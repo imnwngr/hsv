@@ -354,7 +354,7 @@ test("guest directory edits and primary invitation only (mock API)", async ({
     page.getByRole("button", { name: /Thêm alias|Xóa alias/ }),
   ).toHaveCount(0);
   await expect(
-    page.getByRole("button", { name: "Sao chép link" }),
+    page.getByRole("button", { name: "Sao chép link", exact: true }),
   ).toBeVisible();
 });
 test("login and logout require authentication (mock API)", async ({

@@ -85,11 +85,21 @@ it("separates role administration from Editor content permissions",async()=>{
  await pg.exec(readFileSync('supabase/migrations/202611060002_guest_order.sql','utf8'));
  await pg.exec(readFileSync('supabase/migrations/202611060001_agenda_icon_library.sql','utf8'));
  let migration=readFileSync('supabase/migrations/202611080001_editor_roles.sql','utf8');
- await expect(pg.exec(migration)).rejects.toThrow('Reviewed production function changed');await pg.exec('rollback');
  for(const [signature,expected] of [["public.is_admin()","b11e704df80dcdb21b91e90747409eb1"],["public.save_event(jsonb,uuid[],uuid,timestamp with time zone)","49105a95c8ead8a7f32c115943faee62"],["public.reorder_guests(uuid[],uuid[])","a606d9f86880b975f12f66094ef09b67"],["public.guest_order_write_lock()","8c7a699a6dffd3b4945710a92bf50941"],["public.get_event_v110(text)","00a558934b4ea51b6e67ea1ac2371894"],["public.resolve_invitation(text,text)","a8249304545b779d7c9197e226dd2125"],["public.unused_venue_images()","430123e21b929b44cd95c23e0fb6cc2c"]]){
  const actual=(await pg.query<{hash:string}>('select md5(pg_get_functiondef($1::regprocedure)) hash',[signature])).rows[0].hash;
  migration=migration.replace(expected,actual);
  }
+ const definition=(await pg.query<{definition:string}>("select pg_get_functiondef('public.is_admin()'::regprocedure) definition")).rows[0].definition;
+ // Force drift instead of depending on incidental fixture formatting differences.
+ await pg.exec("alter function public.is_admin() cost 101");
+ try {
+  expect((await pg.query<{definition:string}>("select pg_get_functiondef('public.is_admin()'::regprocedure) definition")).rows[0].definition).not.toBe(definition);
+  await expect(pg.exec(migration)).rejects.toThrow('Reviewed production function changed: public.is_admin()');
+ } finally {
+  await pg.exec('rollback');
+  await pg.exec(definition);
+ }
+ expect((await pg.query<{definition:string}>("select pg_get_functiondef('public.is_admin()'::regprocedure) definition")).rows[0].definition).toBe(definition);
  const pre=(await pg.query<{role_audit:Record<string,unknown>}>(readFileSync('supabase/editor-roles-preflight.sql','utf8'))).rows[0].role_audit;
  const functionsBefore=(await pg.query<{name:string;def:string;acl:unknown}>("select p.oid::regprocedure::text name, pg_get_functiondef(p.oid) def, p.proacl acl from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname in ('is_admin','valid_quote_document','save_event','reorder_guests','guest_order_write_lock','get_event_v110','resolve_invitation','unused_venue_images') order by 1")).rows;
  const policiesBefore=(await pg.query<{schemaname:string;tablename:string;policyname:string;qual:string|null;with_check:string|null}>('select schemaname,tablename,policyname,qual,with_check from pg_policies where schemaname in (\'public\',\'storage\') order by 1,2,3')).rows;

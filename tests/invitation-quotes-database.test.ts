@@ -84,9 +84,19 @@ it("stores independent quotes, preserves legacy saves, enforces access and clear
  expect(audit.tables.length).toBe(7);
  const localHash=(await pg.query<{hash:string}>("select md5(pg_get_functiondef('public.save_event(jsonb,uuid[],uuid,timestamptz)'::regprocedure)) hash")).rows[0].hash;
  const pre=(await pg.query<{quote_preflight:{events_fingerprint:string;events_count:number}}>(readFileSync("supabase/quote-preflight.sql","utf8"))).rows[0].quote_preflight;
- const quoteMigration=readFileSync("supabase/migrations/202611070001_invitation_quotes.sql","utf8");
- await expect(pg.exec(quoteMigration)).rejects.toThrow("Production baseline changed");await pg.exec("rollback");
- await pg.exec(quoteMigration.replace("91ca923e964e16cb3e4eca606b7a1e6b",localHash));
+ const quoteMigration=readFileSync("supabase/migrations/202611070001_invitation_quotes.sql","utf8").replace("91ca923e964e16cb3e4eca606b7a1e6b",localHash);
+ const definition=(await pg.query<{definition:string}>("select pg_get_functiondef('public.save_event(jsonb,uuid[],uuid,timestamptz)'::regprocedure) definition")).rows[0].definition;
+ // Force drift: fixture fingerprints can match the reviewed production baseline.
+ await pg.exec("alter function public.save_event(jsonb,uuid[],uuid,timestamptz) cost 101");
+ try {
+  expect((await pg.query<{hash:string}>("select md5(pg_get_functiondef('public.save_event(jsonb,uuid[],uuid,timestamptz)'::regprocedure)) hash")).rows[0].hash).not.toBe(localHash);
+  await expect(pg.exec(quoteMigration)).rejects.toThrow("Production baseline changed");
+ } finally {
+  await pg.exec("rollback");
+  await pg.exec(definition);
+ }
+ expect((await pg.query<{definition:string}>("select pg_get_functiondef('public.save_event(jsonb,uuid[],uuid,timestamptz)'::regprocedure) definition")).rows[0].definition).toBe(definition);
+ await pg.exec(quoteMigration);
  const post=(await pg.query<{quote_postflight:{events_original_fingerprint:string;events_count:number;anon_save:boolean;authenticated_save:boolean;anon_resolve:boolean}}>(readFileSync("supabase/quote-postflight.sql","utf8"))).rows[0].quote_postflight;
  expect(post.events_original_fingerprint).toBe(pre.events_fingerprint);expect(post.events_count).toBe(pre.events_count);expect(post).toMatchObject({anon_save:false,authenticated_save:true,anon_resolve:true});
  const before=(await pg.query<{e:Record<string,unknown>}>("select get_event_v110($1) e",[payload.code])).rows[0].e;

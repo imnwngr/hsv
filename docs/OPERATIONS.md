@@ -1,9 +1,30 @@
 # Vận hành HSV CTUT 3.0.0
 
-Hướng dẫn này mô tả source hiện tại và metadata production đã đọc lại ngày **20/11/2026**. Không sao chép seed hay DDL v1 vào tài liệu; file SQL trong repository là nguồn để review, không phải danh sách lệnh cần chạy lại.
+Hướng dẫn này mô tả source nhánh `hsv4`; trạng thái SQL mới nhất được xác minh ngày **23/11/2026**. Không sao chép seed hay DDL v1 vào tài liệu; các file SQL đã áp dụng không phải danh sách lệnh cần chạy lại khi pull source.
+
+<a id="hsv4-rollout"></a>
+## SQL hsv4 đã áp dụng — 23/11/2026
+
+Người dùng đã cho phép tạo/push nhánh `hsv4`, chia commit và áp dụng SQL mới. Nhánh được tạo từ `feat/event-attendance`, giữ lịch sử cũ; không merge hoặc sửa `main`, không deploy Pages/Edge. Snapshot trước thay đổi nằm ở `supabase/releases/hsv3-before-hsv4/`; bộ mới, snapshot sau và trạng thái máy đọc được nằm ở `supabase/releases/hsv4/`. Cách đọc, backup và phục hồi: [phiên bản SQL](../supabase/releases/README.md).
+
+| Migration trên project `trdofhdspbkwgernwybp` | Version thực tế | Trạng thái |
+|---|---|---|
+| `hsv4_attendance_base` | `20261123021118` | Đã áp dụng |
+| `hsv4_attendance_duration` | `20261123021129` | Đã áp dụng |
+| `hsv4_event_duplication` | `20261123021142` | Đã áp dụng |
+
+Backend trước rollout chưa có namespace điểm danh hoặc RPC nhân bản, nên cần cả ba bước. Không chạy lại migration cũ, không reset database. Sau rollout: checksum của **10/10 bảng ứng dụng cũ giữ nguyên**, policies cũ giữ nguyên, chỉ hai function cũ `save_event` và `event_payload_v110` đổi như thiết kế. Hai sự kiện cũ vẫn chưa cấu hình điểm danh/thiệp mặc định; bảng điểm danh, lịch sử và QR đều rỗng. Không tạo dữ liệu QA production.
+
+Đã kiểm HTTP thật: capability v3, attendance v1 có thời lượng và hsv4 có nhân bản đều đạt; anonymous bị từ chối RPC quản trị, thông tin sở hữu rỗng không đọc/sửa/ghi điểm danh. Ba bảng private bật RLS và không cấp SELECT trực tiếp cho anon/authenticated. Log/checksum chi tiết ở `.local/hsv4/`, ignored; metadata không có dữ liệu cá nhân ở `supabase/releases/hsv4/verification.json`.
+
+Kiểm thử bộ source/SQL cuối: **172 unit/SQL**, **223 browser PASS / 39 skip** (tránh lặp ma trận viewport), lint và production build gồm typecheck đạt; concurrency PostgreSQL 18 synthetic đạt ràng buộc MSSV/trình duyệt, lượt lặp, sửa đồng thời và nhân bản đồng thời. Snapshot schema v3 đã được phục hồi vào database test rồi chạy đúng ba file release; thử chạy lại bị guard từ chối. Không suy ra camera/GPS thật từ mock.
+
+Supabase advisors vẫn báo các RPC `SECURITY DEFINER` có quyền gọi và bảng private có RLS không policy: đây là đường RPC chủ đích, đã đối chiếu quyền và test kiểm sở hữu/quyền quản trị. Không cấp quyền trực tiếp để làm mất các cảnh báo này. [Giải thích RPC public](https://supabase.com/docs/guides/database/database-linter?lint=0028_anon_security_definer_function_executable), [bảng RLS không policy](https://supabase.com/docs/guides/database/database-linter?lint=0008_rls_enabled_no_policy). Cảnh báo [leaked-password protection](https://supabase.com/docs/guides/auth/password-security#password-strength-and-leaked-password-protection) đã có trước rollout; Auth policy không được sửa trong đợt này.
+
+Chưa deploy frontend hoặc Edge `attendance-location`; link Maps rút gọn cần Edge đó để tự mở rộng trên server. Policy mật khẩu backend chưa xác minh/chỉnh; camera/GPS thật và luồng ghi đầy đủ qua session Admin production chưa chạy. Các kiểm thử ghi dùng database synthetic/mock.
 
 <a id="trang-thai"></a>
-## Trạng thái đã đối chiếu
+## Mốc v3 đã đối chiếu ngày 20/11/2026 (lịch sử)
 
 | Thành phần | Bằng chứng | Kết luận |
 | --- | --- | --- |
@@ -176,7 +197,7 @@ Các liên kết này giữ nguyên bằng chứng lịch sử, không xác nh�
 <a id="diem-danh"></a>
 ## Điểm danh: source local ngày 23/11/2026
 
-Nhánh `feat/event-attendance` bắt đầu từ `f3c9c90`, remote `https://github.com/imnwngr/hsv.git`, base path `/hsv/`. Phần này mô tả source của nhánh, **không xác nhận tính năng đang chạy trên production**. Không push, deploy, chạy QA ghi dữ liệu thật hoặc thay Auth/RLS/roles hiện hành. Không thêm hay nâng dependency; `package.json` chỉ thêm script kiểm thử đồng thời.
+Phần điểm danh bắt đầu trên `feat/event-attendance` từ `f3c9c90`, hiện được tiếp nối và push trên `hsv4`, remote `https://github.com/imnwngr/hsv.git`, base path `/hsv/`. SQL đã áp dụng theo mốc rollout đầu tài liệu; frontend/Edge chưa deploy trong đợt này. Không chạy QA ghi dữ liệu thật hoặc thay policy Auth/roles hiện hành. Không thêm hay nâng dependency; `package.json` chỉ thêm script kiểm thử đồng thời.
 
 ### Thao tác quản trị
 
@@ -184,13 +205,23 @@ Tại `/admin/`, bật/tắt công khai chỉ PATCH `events.status`; RLS và con
 
 Editor có sáu mục bám dưới header. “Thiệp hiển thị khi mở sự kiện” chọn một `event_guests.id` đã có; nút Lưu ghi lựa chọn cùng nội dung. Resolver lấy **primary alias hiện tại** và loại thiệp hiện tại. Link sự kiện không có người nhận điều hướng đến `/hsv/thiep-moi/:code/:alias` hoặc `/hsv/thiep-chuc/:code/:alias`; link cá nhân vẫn giữ người nhận. Thiệp bị xóa, alias không hợp lệ hoặc chưa chọn thì quay về trang giới thiệu. Sự kiện nháp tiếp tục ẩn theo backend. Không refresh snapshot hoặc thay media khi cấu hình các mục này.
 
-Trong Thiệp mời, chọn ghim, xác nhận, kiểm tra hai đợt rồi bật điểm danh và Lưu. Công tắc chỉ bật tiếp nhận theo lịch. Khi tắt, bản ghi/lịch sử vẫn còn. Thay địa điểm làm dấu xác nhận ghim cũ không còn hợp lệ; sửa nội dung không liên quan giữ xác nhận. Giờ đóng luôn bằng giờ mở cộng 15 phút.
+Trong Thiệp mời, chọn ghim, xác nhận, kiểm tra hai đợt rồi bật điểm danh và Lưu. Công tắc chỉ bật tiếp nhận theo lịch. Khi tắt, bản ghi/lịch sử vẫn còn. Thay địa điểm làm dấu xác nhận ghim cũ không còn hợp lệ; sửa nội dung không liên quan giữ xác nhận. Thời lượng mỗi đợt tùy chỉnh từ 1 đến 60 phút, mặc định 10 phút cho cấu hình mới; giờ đóng bằng giờ mở cộng thời lượng. Cấu hình cũ chưa có `duration_minutes` giữ 15 phút. Đổi thời lượng giữ giờ mở đã nhập; nút tính lại lịch mặc định dùng thời lượng hiện tại.
+
+Phần mở đợt dùng các ô giờ:phút:giây cùng kiểu nhập phân đoạn với bộ chọn thời gian sự kiện, không có ô nhập ngày riêng. Giữ giây để mốc như `08:52:30` không bị làm tròn. Ngày được lấy từ lịch sự kiện: đợt 1 dùng ngày của trung điểm trừ nửa thời lượng đợt, đợt 2 dùng ngày của thời điểm kết thúc trừ thời lượng đợt, tính theo UTC+7. Khi thay ngày sự kiện, giữ giờ/phút/giây đã nhập và chuyển sang ngày tương ứng. Ngày và giờ đóng hiển thị bằng chữ, kể cả sự kiện qua nửa đêm. Giờ nhập dở giữ dirty state, chặn Lưu và cảnh báo khi rời trang.
 
 Link trình chiếu `/hsv/admin/attendance/:code/display` yêu cầu session có `can_edit_content()`, dùng cùng quyền quản trị nội dung hiện hành. Không có bearer link đặc quyền để phát cho sinh viên; thu hồi quyền quản trị cũng ngăn RPC cấp QR tiếp theo. Kết quả ở `/hsv/admin/attendance/:code`, có tải lại, lịch sử và xuất CSV UTF-8 BOM. Khi import Google Sheets/Excel, chọn cột MSSV là **Plain text/Text** để giữ số 0 đầu; các mốc trong CSV là ISO UTC có offset, trên UI hiển thị giờ Việt Nam. CSV thoát dấu nháy và chặn tiền tố công thức nguy hiểm.
 
 ### Dữ liệu và cổng áp dụng
 
-`supabase/proposals/attendance.sql` là **bản đề xuất, không phải migration đã áp dụng**. Nó đã chạy trên PGlite và cluster PostgreSQL 18 mới chỉ nghe loopback, dữ liệu synthetic. Script dừng nếu namespace đã tồn tại; không được chạy lại trên schema đã áp dụng hoặc chạy cả thư mục migrations.
+Nhân bản ở `/hsv/admin/` dùng RPC `duplicate_event(source_id, copy_id)` trong `supabase/releases/hsv4/03-duplicate-event.sql`, đã áp dụng qua migration ghi ở đầu tài liệu. Nó kiểm `can_edit_content()` và sao chép nội dung, màu, loại thiệp, công khai, chương trình, tham chiếu media, snapshot và primary alias trong một giao dịch. Thiệp mặc định được trỏ sang bản sao tương ứng; không đọc lại danh bạ để thay snapshot. Kết quả điểm danh, liên kết trình duyệt, QR đã cấp và lịch sử chỉnh của người tham dự không được nhân sang sự kiện mới. Media dùng chung đường dẫn bất biến; quy tắc dọn file hiện có bảo vệ file còn sự kiện tham chiếu.
+
+Mã được chọn tại server: `goc-copy`, `goc-copy-2`; sao chép `goc-copy` thành `goc-copy-copy`. Mã dài được cắt phần gốc để tổng không vượt 80 ký tự; kiểm cả mã lịch sử nếu hệ thống có bảng `event_codes`. Cột mới `events.duplicated_from_id` giữ nguồn ngay cả khi đổi mã. Danh sách quản trị xếp giờ bắt đầu giảm dần; bản sao cùng giờ nằm ngay trên nguồn, kể cả cây bản sao. Khi đổi giờ, thứ tự theo giờ mới. UUID yêu cầu được giữ trong sessionStorage để thử lại/mất phản hồi/reload không tạo bản sao ngoài ý muốn; quyền vẫn kiểm lại khi thử lại. Toàn bộ giao dịch rollback nếu lỗi.
+
+Form hoàn tất tài khoản đã đổi giới hạn web từ 10 xuống 6 ký tự. Đây là `minLength` trong `AcceptInvitation.tsx`, không phải constraint PostgreSQL. Supabase Auth có chính sách mật khẩu riêng; endpoint settings công khai không trả minimum length, nên phiên này chưa xác nhận hoặc thay chính sách Auth thật. Browser test dùng mock xác nhận 5 ký tự bị chặn, 6 ký tự được gửi và lỗi máy chủ vẫn được hiển thị.
+
+Các file trong `supabase/proposals/` giữ bản đề xuất lịch sử, không chạy bản này. Bản phát hành chính thức ở `supabase/releases/hsv4/` đã áp dụng đủ ba bước và có mirror theo version server trong `supabase/migrations/`. Script dừng nếu namespace/function đã tồn tại; không chạy lại trên schema đã áp dụng hoặc chạy cả thư mục migrations.
+
+`supabase/releases/hsv4/02-attendance-duration.sql` thêm khóa JSONB tùy chọn `duration_minutes`, cập nhật validation/lịch server/giờ đóng và giới hạn QR; không thay dữ liệu đang lưu. Capability đã kiểm HTTP trả `duration_minutes: true`; frontend vẫn chặn lưu cấu hình có thời lượng nếu trỏ tới backend chưa hỗ trợ. Với môi trường khác đã có nền điểm danh, đối chiếu ledger và chỉ áp dụng bước còn thiếu.
 
 | Bổ sung | Mục đích |
 | --- | --- |
@@ -204,19 +235,19 @@ Link trình chiếu `/hsv/admin/attendance/:code/display` yêu cầu session có
 
 Schema private không được cấp quyền truy cập bảng trực tiếp và có RLS. RPC đặc quyền cố định `search_path`, kiểm tra quyền quản trị hoặc chứng cứ sở hữu khóa, revoke quyền mặc định và grant từng API cần thiết. Hai UNIQUE `(event_id, browser_id)` và `(event_id, student_id)`, khóa giao dịch theo trình duyệt và row lock giữ ràng buộc khi đồng thời. Dữ liệu vị trí được kiểm tra trong RPC, **không lưu lịch sử theo dõi vị trí**. Không thay role hay policy Auth hiện hành. Token cũ được dọn khi cấp QR, chỉ trong sự kiện đó và khi đã hết hạn hơn hai giờ.
 
-Trước khi dùng ở môi trường thật vẫn cần **phê duyệt schema/migration và triển khai riêng** theo AGENTS.md §4. Công việc review đã cụ thể trong SQL/source/test; chưa có phê duyệt áp dụng. Sau khi được phép: đối chiếu definitions/history của môi trường đích, backup, tạo migration qua workflow hiện hành từ đề xuất, thử trên staging, áp dụng đúng một lần, deploy Edge với JWT verification rồi kiểm tra quyền/RPC qua HTTP. Chỉ phát hành frontend khi `check:backend` thấy attendance capability v1. Không tự reset, chạy lại migration v3, hoặc lấy thành công của mock làm bằng chứng Supabase thật.
+Phê duyệt SQL và push đã được người dùng cấp rõ ngày 23/11/2026; ba migration đã áp dụng sau snapshot và kiểm thử synthetic. `check:backend` hiện đạt cả capability attendance v1/thời lượng và hsv4/nhân bản. Deploy Pages hoặc Edge là thao tác riêng, chưa thực hiện. Không reset, chạy lại migration v3, hoặc lấy thành công của mock làm bằng chứng ghi điểm danh trên Supabase thật.
 
 ### Thời gian, QR và vị trí
 
 | Quy tắc | Giá trị thực thi |
 | --- | --- |
 | Mặc định bật | Tắt; chỉ Thiệp mời + snapshot thiệp nhóm + đã công khai + đã bật mới đủ điều kiện |
-| Bán kính | 100 m; số nguyên 10–1.000 m ở frontend/backend |
-| Hai đợt | Mỗi đợt đúng 900 giây, mở bao gồm biên đầu, đóng loại trừ biên cuối |
-| Mặc định đợt 1 | Trung điểm ±7 phút 30 giây |
-| Mặc định đợt 2 | 15 phút cuối sự kiện |
-| Lịch cần chỉnh | Mặc định bỏ trống nếu thời lượng dưới 45 phút hoặc trên 24 giờ; lịch nhập phải đủ hai đợt, theo thứ tự, không chồng, nằm trong sự kiện |
-| Ví dụ 08:00–10:00 | Đợt 1: 08:52:30–09:07:30; đợt 2: 09:45:00–10:00:00, UTC+7 |
+| Bán kính | 50 m cho cấu hình mới; giữ bán kính đã lưu. Số nguyên 10–1.000 m ở frontend/backend |
+| Hai đợt | Mặc định mới 10 phút/đợt; tùy chỉnh số nguyên 1–60 phút. Thiếu cấu hình thời lượng giữ 15 phút. Mở bao gồm biên đầu, đóng loại trừ biên cuối |
+| Mặc định đợt 1 | Trung điểm ± nửa thời lượng đợt (mới: ±5 phút) |
+| Mặc định đợt 2 | Kết thúc đúng lúc sự kiện kết thúc (mới: 10 phút cuối) |
+| Lịch cần chỉnh | Mặc định bỏ trống nếu sự kiện ngắn hơn 3 lần thời lượng đợt hoặc trên 24 giờ; lịch nhập phải đủ hai đợt, theo thứ tự, không chồng, nằm trong sự kiện |
+| Ví dụ 08:00–10:00 | Cấu hình mới: đợt 1 08:55–09:05; đợt 2 09:50–10:00, UTC+7. Chọn 15 phút vẫn cho lịch 08:52:30–09:07:30 và 09:45–10:00 |
 | Chu kỳ QR | 5 giây; số nguyên 3–60 giây; slot theo giờ server |
 | Thời hạn chấp nhận | Đến hết slot + tối đa 1 giây dung sai; tuyệt đối không vượt giờ đóng đợt, không nhận khi tắt/ẩn/sai loại/cấu hình đổi |
 | Định vị | Mỗi đợt lấy mới; tuổi tối đa 30 giây, dung sai tương lai 5 giây; accuracy >0 và ≤min(50 m, bán kính/2) |
@@ -227,6 +258,8 @@ Mã QR là token ngẫu nhiên 244 bit do PostgreSQL sinh và tra cứu, không 
 Tọa độ `!3d…!4d…` hoặc query tọa độ tường minh từ Maps chỉ là **ghim gợi ý**; `@lat,lng` là tâm camera nên không dùng làm ghim địa điểm. Bộ chọn tự thử đọc link khi mở. Edge chỉ theo HTTPS các host Google Maps cho phép, tối đa năm bước, timeout 5 giây, kiểm từng redirect, không đọc HTML tùy ý hoặc chuyển cookies. Không xác định được thì báo rõ, cho tìm qua Nominatim/OpenStreetMap, nhấp/phím mũi tên hoặc nhập tọa độ rồi xác nhận. Không dùng API key/dịch vụ trả phí mới. Tile/search phụ thuộc mạng và chính sách dịch vụ công cộng; khi lỗi có nhập tọa độ thủ công. Giữ attribution OSM, chỉ tìm sau thao tác và cách nhau ít nhất 1,1 giây; không autocomplete hay tải bản đồ cho mọi thiệp.
 
 ### Sinh viên, bảo mật và giới hạn
+
+Bộ chọn ghim hỗ trợ **Plus Code Google Maps** thay cho nhập tay kinh/vĩ độ. Dán mã rồi bấm “Đặt ghim từ Plus Code”: mã đầy đủ được giải mã tại trình duyệt; mã rút gọn kèm tên địa phương dùng tìm kiếm Nominatim hiện có để xác định vùng tham chiếu, còn mã rút gọn đứng riêng cần ghim hiện tại làm tham chiếu. Nếu không tìm được địa phương thì giữ ghim cũ và báo lỗi, không đoán vị trí. Luôn kiểm tra và xác nhận ghim sau khi đổi mã, sau đó Lưu sự kiện. Backend vẫn nhận tọa độ như trước; không thêm dependency, API key hoặc schema. Mã rút gọn phụ thuộc độ đúng của địa phương/ghim tham chiếu.
 
 Popup chỉ tự mở trong đợt server đang cho phép; mỗi đợt được đánh dấu đã thông báo trong session storage, reload cùng tab không tự bật lại, vẫn có nút mở. Kiểm tra lại mỗi 3 giây và khi quay lại tab/có mạng. Điện thoại khóa hoặc trình duyệt bị hệ điều hành tạm dừng không bảo đảm hiện popup đúng lúc.
 
@@ -251,6 +284,8 @@ npm run build
 
 Runner concurrency dùng PostgreSQL 18 đã có tại `C:/Program Files/PostgreSQL/18/bin`; có thể truyền `HSV_PG_BIN` cho riêng process. Nó tự tạo cluster synthetic trong `.local/attendance/concurrency/`, port loopback 55449, không đọc connection string/credential và luôn dừng server sau chạy. Không dùng runner live/RLS ghi dữ liệu thật cho đợt này.
 
+Phần chỉnh giờ/bán kính/thời lượng/nhân bản có unit + SQL rollback/quyền/snapshot/alias và browser mock riêng. Runner concurrency còn kiểm hai phiên cùng nhân bản một nguồn và cùng thử lại UUID, dùng cấu hình 50 m/10 phút; PASS, không ghi production. Ảnh 320/390/768/1440 ở `.local/attendance/duration-*`, `.local/attendance/time-only-*`, `.local/admin-updates/duplicate-*`. Lượt QA trước rollout từng chặn capability thời lượng; sau áp dụng ba migration ngày 23/11/2026, `node --env-file=.env.local scripts/check-hsv-backend.mjs` đã PASS. Kết quả mới nhất và phạm vi chưa deploy ghi ở đầu tài liệu.
+
 Unit/SQL kiểm loại thiệp/nhóm, cấu hình, vị trí, lịch/biên, QR giả/hết hạn/sai sự kiện/đợt, dung sai, nhiều sinh viên chung mã, ownership, lượt lặp, sửa nhiều lần và rollback. Hai phiên PostgreSQL độc lập kiểm đụng MSSV, trùng lượt, cùng sửa sang MSSV mới và hai MSSV cùng liên kết một browser. Browser kiểm popup, quyền bị từ chối, video canvas được decoder thật đọc, cleanup, reload/mất khóa, mạng mất sau ghi, đổi giờ máy/đổi đợt, editor dirty/leave guard, công khai và thiệp mặc định; bộ cũ bảo vệ nhạc, cuộn, màu, alias và snapshot.
 
 Ảnh `{config,pin,display,prepare,scan,success,failure,edit}-{320,390,768,1440}.png` trong `.local/attendance/` được tạo bởi test và xem trực quan. `playwright-report/` là báo cáo browser; concurrency có `result.json` riêng theo timestamp. Tất cả ignored, chỉ fixture synthetic. Không đánh dấu các giới hạn thiết bị/ẩn danh/camera thật là PASS.
@@ -267,3 +302,28 @@ Kết quả local ngày 23/11/2026:
 | Giao diện và khả năng truy cập | PASS trong phạm vi browser: 320/390/768/1440px, focus/Escape, axe dialog, bàn phím mô phỏng, lỗi/mất mạng; không thay cho screen reader hay máy thật | Các ảnh PNG cùng thư mục |
 
 Tên log trong bảng đều nằm dưới `.local/attendance/`. Bộ browser dùng RPC/network/media mock; SQL và concurrency chạy implementation backend thực trên database synthetic, chưa phải kiểm thử tích hợp qua Supabase HTTP/Edge đã deploy. Sửa cuối kiểm tra việc bỏ người nhận mặc định: FK trả lựa chọn rỗng và revision mới về editor, nên lần lưu tiếp theo không xung đột giả. Bảng kết quả giữ nguyên một hàng sau sửa thông tin và cuộn ngang trên điện thoại.
+
+<a id="uiux-danh-sach"></a>
+
+### Nâng cấp UI/UX danh sách — 23/11/2026
+
+UI/UX được thực hiện trên `feat/event-attendance`, sau đó đưa vào `hsv4`, origin `https://github.com/imnwngr/hsv.git`, base `/hsv/`. Vite tiếp tục chạy ở `http://127.0.0.1:5173/hsv/`. Kiểm tra Chrome DevTools trực tiếp xác nhận form đăng nhập không còn thông báo thiếu cấu hình; không đăng nhập hoặc ghi dữ liệu production để QA. Tìm `rung chuong vang` trên danh sách công khai trả đúng một sự kiện, xóa từ khóa giữ focus ở ô nhập.
+
+Danh sách quản trị dùng hàng gọn, nút lọc có số lượng, tên sự kiện liên kết đến editor, công khai trực tiếp, chỉnh sửa và nhân bản. Menu Thao tác chứa xem sự kiện, sao chép link, kết quả điểm danh và xóa có xác nhận. Trang chủ có tìm kiếm không dấu và lọc sắp/đang diễn ra, Thiệp chúc, đã kết thúc. Tìm kiếm/tháng/năm/trạng thái nằm trong query URL (`q`, `month`, `year`, `view`), giữ khi reload/Back; xóa bộ lọc bỏ cả bốn tiêu chí. Lựa chọn không thay thứ tự admin theo thời gian bắt đầu hoặc resolver thiệp mặc định. Không sửa API, schema, permissions, snapshot, media, nhạc hoặc animation thiệp trong goal UI này.
+
+File chính của UI: `src/pages/{Dashboard,Home}.tsx`, `src/components/{EventSearch,EventFilters,Confirm,AdminShell}.tsx`, `src/hooks/useEventListFilters.ts`, `src/features/events/EventActions.tsx`, `src/styles/{admin,public}.css`. Browser coverage mới ở `tests/e2e/usability.spec.ts`; các assertion tên thông báo/thao tác trong `app.spec.ts`, `redesign.spec.ts` cập nhật theo giao diện mới. Thiết kế, các quan sát và phương pháp phối hợp skill nằm ở `DESIGN.md`, không có báo cáo UI riêng trùng lặp.
+
+| Nhóm kiểm tra cuối | Kết quả đo được | Bằng chứng trong `.local/uiux/` |
+|---|---|---|
+| Typecheck / lint / production build | PASS, build gồm `tsc -b`; không dependency mới | `typecheck.log`, `lint.log`, `build.log` |
+| Unit và SQL synthetic | 168 PASS trên 33 file | `unit.log` |
+| Toàn bộ browser desktop/mobile | Đã chạy 262 ca: 217 PASS, 39 skip do ma trận trùng, 6 fail đã xác định (assertion thông báo cũ và toast thiếu tương phản) | `browser-full.log` |
+| Tái kiểm sau sửa, gồm cả 6 ca trên | 22/22 PASS, 0 fail; kiểm UI mới, tên thông báo, error/retry, clipboard, focus và toast | `browser-final.log` |
+| Visual và accessibility | 320/390/768/1440 px; axe không ghi nhận vi phạm trong trang danh sách và menu/notification được kiểm; chữ thực 200%, reduced motion, tên/mã dài | `before/`, `after/`, `after/admin-text-200*.png` |
+| Mật khẩu / nhân bản / giờ / Plus Code / bán kính / thời lượng | Các ca browser tương ứng PASS trong lượt toàn bộ; SQL và race test của phần trước giữ nguyên | `browser-full.log`; `.local/attendance/concurrency/2026-11-22T21-10-50-744Z/result.json` |
+
+Ảnh `before/{admin,home}-{320,390,768,1440}.png` và `after/` dùng cùng fixture có nhãn kiểm thử. `metrics-*.json` ghi chiều cao hàng và vị trí hàng đầu: 1440 px từ 243 xuống 149 px; 390 px từ 337 xuống 278 px, vị trí hàng đầu từ y=992 xuống y=676. `after/actions-*`, `*-filter-empty`, `admin-empty`, `home-empty`, `home-loading`, `home-network-error`, `admin-text-200*` lưu các trạng thái còn lại. Ảnh cấu hình/ghim/QR/popup/quét/kết quả/chỉnh sửa vẫn ở `.local/attendance/`. Đây là bằng chứng local/mock và trình duyệt giả lập, không xác nhận camera/GPS, bàn phím ảo hay screen reader trên điện thoại thật.
+
+Ở cuối goal UI/UX ban đầu, SQL còn chờ phê duyệt. Người dùng đã cho phép áp dụng/push trong lượt tiếp theo: trạng thái hiện tại là ba migration hsv4 đã áp dụng, capability HTTP đạt; xem mốc rollout đầu tài liệu. Giá trị mới là bán kính 50 m, hai đợt 10 phút có thể chỉnh 1–60 phút, QR 5 giây với dung sai tối đa 1 giây không vượt giờ đóng; cấu hình cũ thiếu thời lượng giữ 15 phút. Mật khẩu 6 ký tự là giới hạn frontend; policy Supabase Auth chưa thay đổi. Chưa deploy frontend/Edge.
+
+Giới hạn nhận diện thiết bị/ẩn danh, khả năng giả vị trí và việc không xác minh danh tính sinh viên được giữ như mục Điểm danh ở trên. UI mới không thêm tuyên bố bảo mật hoặc nâng các giới hạn đó thành PASS.

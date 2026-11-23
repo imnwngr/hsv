@@ -1,5 +1,5 @@
--- Review artifact, NOT an applied migration. Run only on an approved isolated baseline.
--- Promote through the existing migration workflow after explicit schema approval.
+-- Historical proposal. Superseded by ../releases/hsv4/01-attendance.sql.
+-- Do not execute this copy; applied versions are recorded in ../releases/hsv4/manifest.json.
 begin;
 set local lock_timeout = '5s';
 lock table public.events in share row exclusive mode;

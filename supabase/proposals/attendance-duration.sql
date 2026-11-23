@@ -1,5 +1,5 @@
--- Review artifact only; additive upgrade after attendance.sql, never replay the base schema.
--- Requires explicit schema approval before promotion through the migration workflow.
+-- Historical proposal. Superseded by ../releases/hsv4/02-attendance-duration.sql.
+-- Do not execute this copy; applied versions are recorded in ../releases/hsv4/manifest.json.
 begin;
 set local lock_timeout = '5s';
 do $$ begin

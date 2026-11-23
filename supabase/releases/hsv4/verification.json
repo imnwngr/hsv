@@ -1,0 +1,77 @@
+{
+  "checked_at": "2026-11-23T02:12:24.557073+00:00",
+  "project_ref": "trdofhdspbkwgernwybp",
+  "application_tables_unchanged": 10,
+  "existing_policies_unchanged": true,
+  "changed_existing_functions": [
+    "save_event",
+    "event_payload_v110"
+  ],
+  "postflight": {
+    "copies": 0,
+    "events": 2,
+    "capability": {
+      "version": 4,
+      "attendance": {
+        "version": 1,
+        "duration_minutes": true
+      },
+      "duplicate_event": true
+    },
+    "permissions": {
+      "anon_display": false,
+      "anon_results": false,
+      "anon_duplicate": false,
+      "anon_private_schema": false,
+      "authenticated_duplicate": true,
+      "authenticated_private_schema": false
+    },
+    "default_cards": 0,
+    "private_tables": [
+      {
+        "rls": true,
+        "name": "edits",
+        "anon_select": false,
+        "authenticated_select": false
+      },
+      {
+        "rls": true,
+        "name": "records",
+        "anon_select": false,
+        "authenticated_select": false
+      },
+      {
+        "rls": true,
+        "name": "tokens",
+        "anon_select": false,
+        "authenticated_select": false
+      }
+    ],
+    "attendance_edits": 0,
+    "attendance_tokens": 0,
+    "configured_events": 0,
+    "attendance_records": 0
+  },
+  "http_checks": {
+    "capabilities": "PASS",
+    "anonymous_admin_rpcs": "DENIED",
+    "empty_browser_credentials": "REJECTED_WITHOUT_WRITE"
+  },
+  "tests": {
+    "unit_sql": 172,
+    "browser_passed": 223,
+    "browser_skipped": 39,
+    "browser_failed": 0,
+    "lint": "PASS",
+    "production_build_including_typecheck": "PASS",
+    "postgresql_concurrency": "PASS",
+    "schema_restore_and_upgrade": "PASS"
+  },
+  "limits": [
+    "No frontend Pages or Edge deployment in this release",
+    "No production attendance/duplication QA writes",
+    "No real-device camera/GPS verification",
+    "Auth password policy unchanged"
+  ],
+  "evidence": ".local/hsv4/ (ignored, local only)"
+}

@@ -1,5 +1,5 @@
--- Review artifact only. Not a migration and not applied to a connected database.
--- Requires explicit schema approval before promotion through the migration workflow.
+-- Historical proposal. Superseded by ../releases/hsv4/03-duplicate-event.sql.
+-- Do not execute this copy; applied versions are recorded in ../releases/hsv4/manifest.json.
 begin;
 set local lock_timeout = '5s';
 do $$ begin

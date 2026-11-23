@@ -2,10 +2,26 @@
 import { PGlite } from "@electric-sql/pglite";
 import { afterAll, beforeAll, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
+import { createHash } from "node:crypto";
 const sql = (path: string) => readFileSync(path, "utf8");
 const base = "supabase/releases/";
 const pg = new PGlite();
 const admin = "20000000-0000-4000-8000-000000000001";
+it("pins the applied release SQL to its manifest and migration-history mirrors", () => {
+  const manifest = JSON.parse(sql(base + "hsv4/manifest.json"));
+  expect(manifest.status).toBe("applied");
+  for (const step of manifest.steps) {
+    const contents = sql(base + "hsv4/" + step.file).replaceAll("\r\n", "\n");
+    expect(createHash("sha256").update(contents).digest("hex")).toBe(
+      step.sha256,
+    );
+    expect(
+      sql(base + "hsv4/" + step.migration_file).replaceAll("\r\n", "\n"),
+    ).toBe(contents);
+    expect(step.migration_version).toMatch(/^\d{14}$/);
+    expect(step.status).toBe("applied");
+  }
+});
 let original: Record<string, unknown>;
 beforeAll(async () => {
   await pg.exec(`create role anon; create role authenticated; create role service_role;

@@ -125,7 +125,9 @@ test("public list, filters, details, navigation, refresh and responsive layout (
     fullPage: true,
   });
   await page.getByLabel("Tháng", { exact: true }).selectOption("11");
-  await expect(page.getByText("Chưa có nội dung")).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Không tìm thấy sự kiện" }),
+  ).toBeVisible();
   await page.getByLabel("Tháng", { exact: true }).selectOption("10");
   await page.getByRole("link", { name: "Xem chi tiết" }).click();
   await expect(page.getByRole("heading", { name: event.title })).toBeVisible();
@@ -235,11 +237,13 @@ test("admin creation validation and save, selection, deletion confirmation (mock
   expect(payload.p_event.longitude).toBeNull();
   await expect(page.getByText("Đã lưu sự kiện", { exact: true })).toBeVisible();
   await page.goto("/hsv/admin/");
-  await page.getByRole("button", { name: "Xóa", exact: true }).click();
+  await page.locator(".admin-event summary").click();
+  await page.getByRole("button", { name: "Xóa sự kiện", exact: true }).click();
   await expect(page.getByRole("dialog")).toBeVisible();
   await page.keyboard.press("Escape");
   await expect(page.getByRole("dialog")).not.toBeVisible();
-  await page.getByRole("button", { name: "Xóa", exact: true }).click();
+  await page.locator(".admin-event summary").click();
+  await page.getByRole("button", { name: "Xóa sự kiện", exact: true }).click();
   const deletion = page.waitForRequest(
     (r) => r.method() === "DELETE" && r.url().includes("/events"),
   );

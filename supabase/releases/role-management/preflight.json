@@ -1,0 +1,40 @@
+{
+  "checksums": {
+    "events": "cef0d015622be28d4af56f9fd85d2d57",
+    "guests": "e3497bdeb77450fd73829e765d505955",
+    "admin_users": "6ae24e33b8bd45860139dd4cb7b1e07b",
+    "editor_users": "3b3f9003bff8d894787bebc75711ba88",
+    "event_guests": "24b5678bf8f0bb85b04a8de1d49688ed"
+  },
+  "role_counts": {
+    "admin": 2,
+    "editor": 2
+  },
+  "already_applied": false,
+  "legacy_functions": [
+    {
+      "acl": [
+        "postgres=X/postgres",
+        "service_role=X/postgres"
+      ],
+      "hash": "2cb8d167d1a4849c8582576a3158b7d5",
+      "name": "begin_editor_add"
+    },
+    {
+      "acl": [
+        "postgres=X/postgres",
+        "service_role=X/postgres"
+      ],
+      "hash": "426fa2f61d659e10abb4026102c72c04",
+      "name": "finish_editor_add"
+    },
+    {
+      "acl": [
+        "postgres=X/postgres",
+        "service_role=X/postgres"
+      ],
+      "hash": "a2b4a53a6384010d062a62d43e1d339d",
+      "name": "set_editor_role"
+    }
+  ]
+}

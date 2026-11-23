@@ -4,6 +4,16 @@ Hướng dẫn này mô tả source `main`, đã nhận `hsv4` qua PR #2 tại `
 
 Release lịch sử [v3.0.0](https://github.com/imnwngr/hsv/releases/tag/v3.0.0) đã được tạo tại merge commit `5d663574be5a2357c2b161385d1b4fe0d430a75f` của PR #1, không phải HEAD hiện tại. Release này không chứa HSV4, không chạy SQL hoặc deploy lại v3. Chưa tạo release v4.0.0.
 
+## Quản lý vai trò — triển khai ngày 23/11/2026
+
+Admin đã có thể nâng Editor thành Admin, hạ/thu hồi Admin khác và thêm tài khoản trực tiếp với vai trò Admin. Editor không được thay quyền bất kỳ tài khoản nào, kể cả tự thu hồi. SQL `20261123092824_hsv_account_role_management` đã áp dụng; Edge `manage-editors` v8 giữ xác minh JWT. [CI và Pages run 45146853915](https://github.com/imnwngr/hsv/actions/runs/45146853915) thành công tại source `80b2fe0`.
+
+190 unit/SQL/Edge và 45 browser tập trung đạt, 9 ca skip để tránh lặp ma trận; typecheck/lint/build đạt. Sandbox native xác minh lời mời Admin, quyền thay đổi có hiệu lực ngay và hai Admin tự hạ đồng thời vẫn giữ một Admin. Không gửi email thử hoặc đổi quyền tài khoản production. Checksum trước/sau của membership, events, guests và event_guests giống nhau. Chrome kiểm tra bản bundle mới trên Pages, trang chủ tải bình thường và truy cập `/admin/roles` chưa đăng nhập chuyển đúng sang login; không có lỗi console tại login. Chưa chạy thao tác ghi bằng tài khoản production.
+
+Ảnh browser mock ở `.local/account-roles/`, báo cáo CI tại `browser-45146853915/` và kết quả Auth/PostgreSQL riêng tại `native-45146853915/` bên trong thư mục đó (đều ignored). [Manifest](../supabase/releases/role-management/manifest.json) liên kết snapshot trước/sau; migration mirror là bản ghi lịch sử, không chạy lại khi pull. Không thêm dependency hoặc đổi Auth policy.
+
+Advisors thêm cảnh báo [authenticated SECURITY DEFINER](https://supabase.com/docs/guides/database/database-linter?lint=0029_authenticated_security_definer_function_executable) cho `account_add_recovery`: đây là RPC chủ đích, có kiểm Admin trong thân function và ca kiểm Editor bị từ chối. Các writer chỉ service role gọi được. Cảnh báo Auth/password và RPC điểm danh có từ trước; không đổi policy để xóa cảnh báo.
+
 <a id="editor-polish"></a>
 ## Thu gọn editor và sửa toast — 23/11/2026
 

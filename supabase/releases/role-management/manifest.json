@@ -1,28 +1,45 @@
 {
   "project": "trdofhdspbkwgernwybp",
   "release": "account-role-management",
-  "status": "prepared",
+  "status": "deployed",
   "sql": {
     "file": "01-account-roles.sql",
     "sha256": "bf965150257aae295cb1271bc6905f1120e90650e2aa214efc5cb0fa96c83d36",
-    "status": "not_applied"
+    "status": "applied",
+    "migration": {
+      "name": "hsv_account_role_management",
+      "version": "20261123092824"
+    },
+    "mirror": "supabase/migrations/20261123092824_hsv_account_role_management.sql"
   },
   "edge": {
     "name": "manage-editors",
     "previousVersion": 7,
-    "status": "not_deployed"
+    "status": "deployed",
+    "version": 8,
+    "verify_jwt": true
   },
   "pages": {
-    "status": "pending"
+    "status": "deployed",
+    "sourceCommit": "80b2fe0faf5c405d0c569040722f4811defdb1d3",
+    "run": "https://github.com/imnwngr/hsv/actions/runs/45146853915",
+    "url": "https://imnwngr.github.io/hsv/"
   },
   "snapshots": {
     "beforeFunctions": "before.json",
     "beforeMetadata": "before-metadata.json",
     "beforeEdge": "before-edge.json",
-    "scope": "SQL definitions, privileges and Edge source only; no Auth users, credentials or application data"
+    "scope": "SQL definitions, privileges and Edge source only; no Auth users, credentials or application data",
+    "preflight": "preflight.json",
+    "after": "after.json"
   },
   "verification": {
     "local": "190 unit/SQL/Edge, typecheck, lint and build passed; browser mocks at 320/390/768/1440",
-    "nativeConcurrency": "pending CI disposable PostgreSQL"
+    "nativeConcurrency": "PASS: concurrent self-demotions preserve one Admin in disposable native Auth/Edge/PostgreSQL",
+    "ci": "190 unit/SQL/Edge and 45 browser passed, 9 browser skipped; typecheck/lint/build passed",
+    "productionReadOnly": "PASS: capabilities, privileges, unchanged application/membership checksums, new live bundle and login route guard",
+    "productionAccountMutations": "Not performed",
+    "evidence": ".local/account-roles/ (ignored)",
+    "checkedAt": "2026-11-23T09:30:53.121Z"
   }
 }

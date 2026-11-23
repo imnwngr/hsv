@@ -27,6 +27,16 @@ Popup bổ sung hướng dẫn hai lớp quyền, giữ dữ liệu nhập/khóa
 
 Bộ browser điểm danh sau thay đổi đạt 38 ca, 8 skip tránh lặp viewport. Hồi quy mới kiểm tra mã lỗi 1/2/3, không mở camera/ghi dữ liệu khi định vị lỗi, thử lại lấy vị trí mới rồi ghi đúng một lượt và giữ nguyên khóa. Ảnh hướng dẫn và axe ở 320/390/768/1440 px: `.local/attendance/location-permission-*.png`; log ở `.local/ci-fix-45106500917/safari-*.log`. Đây là Chromium với geolocation/media/network mock (gồm thiếu Permissions API), **chưa xác minh GPS hoặc Safari trên iPhone thật**; hướng dẫn mới không phải bằng chứng đã xử lý được quyền hệ thống trên thiết bị của người dùng.
 
+### Camera đã được cho phép nhưng chưa mở được
+
+Luồng quét phân biệt lỗi xin camera với lỗi phát video. Nếu `getUserMedia` bị `NotAllowedError` hoặc `SecurityError`, popup chỉ dẫn quyền website, **Cài đặt → Ứng dụng → Safari → Camera** (iOS cũ: **Cài đặt → Safari**) và giới hạn Camera trong Thời gian sử dụng. Thiếu camera hoặc camera bận có thông báo riêng. Không dùng Permissions API để chặn luồng, không xin quyền micro và không yêu cầu xóa dữ liệu trình duyệt. Thử lại giữ họ tên/MSSV/khóa, lấy vị trí mới rồi mới xin camera.
+
+Nếu đã có stream nhưng `video.play()` bị `NotAllowedError`, hiển thị nút **Bật video camera** để phát bằng thao tác trực tiếp, không báo nhầm là từ chối quyền. Đóng popup, rời tab, hết thời gian hoặc quét xong đều dừng stream; cleanup xóa tham chiếu để không dừng lặp cùng stream. Camera vẫn chỉ được mở sau thao tác bắt đầu của người dùng.
+
+Kiểm tra local: typecheck, lint và production build đạt. Lượt tái kiểm tập trung `--grep camera --workers=2` đạt **16 ca**, 4 skip tránh lặp ma trận viewport. Bao phủ từ chối quyền/thử lại giữ khóa, camera thiếu/bận, video cần chạm và cleanup. Hai lỗi đếm cleanup ở lượt đầu đã được sửa trong source và cả desktop/mobile đều đạt khi chạy lại. Ảnh hướng dẫn ở `.local/attendance/camera-permission-{320,390,768,1440}.png`, trạng thái cần chạm ở `camera-video-tap-{desktop,mobile}.png`; báo cáo ở `playwright-report/` (đều ignored). Axe trong popup hướng dẫn không ghi nhận vi phạm, không tràn ngang ở bốn chiều rộng. Đây là Chromium với media/GPS/network mock, **chưa xác minh camera hoặc Safari trên iPhone thật**.
+
+Theo yêu cầu deploy nhanh, workflow có tùy chọn thủ công `quick_deploy=true`: chạy browser tests liên quan camera, vị trí và lỗi sắp xếp danh bạ vừa sửa. Vẫn giữ typecheck, lint, toàn bộ unit/SQL tests, native sandbox, production build và backend capability gate. Push/PR và dispatch mặc định vẫn chạy toàn bộ browser suite. Lệnh dùng khi phát hành bản sửa này: `gh workflow run deploy.yml --ref main -f quick_deploy=true`. Trạng thái deploy chỉ được xác nhận từ run tương ứng; không chạy migration hay ghi dữ liệu điểm danh production trong QA.
+
 <a id="hsv4-rollout"></a>
 ## SQL hsv4 đã áp dụng — 23/11/2026
 

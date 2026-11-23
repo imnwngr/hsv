@@ -4,6 +4,11 @@ on:
     branches: [main, hsv-v3]
   pull_request:
   workflow_dispatch:
+    inputs:
+      quick_deploy:
+        description: "Run focused attendance/camera/reorder browser checks for this hotfix"
+        type: boolean
+        default: false
 permissions:
   contents: read
 concurrency:
@@ -26,6 +31,10 @@ jobs:
       - run: npm test
       - run: npx playwright install --with-deps chromium
       - run: npm run test:e2e
+        if: github.event_name != 'workflow_dispatch' || !inputs.quick_deploy
+      - name: Focused browser checks for quick deploy
+        if: github.event_name == 'workflow_dispatch' && inputs.quick_deploy
+        run: npm run test:e2e -- --grep 'guest directory compact/full|permission recovery|location error|camera|closed rounds do not auto-popup'
       - uses: actions/upload-artifact@v4
         if: always()
         with:

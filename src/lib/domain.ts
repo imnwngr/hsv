@@ -88,6 +88,35 @@ export function orderEvents(events: ClubEvent[], now = Date.now()) {
       a.id.localeCompare(b.id),
   );
 }
+export function orderAdminEvents(events: ClubEvent[]) {
+  const start = (event: ClubEvent) => Date.parse(event.starts_at ?? "") || 0;
+  const byId = new Map(events.map((event) => [event.id, event]));
+  const children = new Map<string, ClubEvent[]>();
+  const roots: ClubEvent[] = [];
+  for (const event of events) {
+    const parent = byId.get(event.duplicated_from_id ?? "");
+    if (parent && parent.id !== event.id && start(parent) === start(event)) {
+      children.set(parent.id, [...(children.get(parent.id) ?? []), event]);
+    } else roots.push(event);
+  }
+  const created = (a: ClubEvent, b: ClubEvent) =>
+    Date.parse(a.created_at) - Date.parse(b.created_at) ||
+    a.id.localeCompare(b.id);
+  roots.sort((a, b) => start(b) - start(a) || created(b, a));
+  for (const siblings of children.values()) siblings.sort(created);
+  const ordered: ClubEvent[] = [];
+  const seen = new Set<string>();
+  const visit = (event: ClubEvent) => {
+    if (seen.has(event.id)) return;
+    seen.add(event.id);
+    for (const child of children.get(event.id) ?? []) visit(child);
+    ordered.push(event);
+  };
+  roots.forEach(visit);
+  // A malformed parent cycle must not hide events from the administration list.
+  events.forEach(visit);
+  return ordered;
+}
 export function filterEvents(
   events: ClubEvent[],
   month: string,

@@ -52,6 +52,7 @@ export default function AttendanceCard({
   const [name, setName] = useState(""),
     [student, setStudent] = useState("");
   const [error, setError] = useState("");
+  const [locationHelp, setLocationHelp] = useState(false);
   const [fix, setFix] = useState<PositionFix | null>(null);
   const [recordedRound, setRecordedRound] = useState<1 | 2 | null>(null);
   const [editingBusy, setEditingBusy] = useState(false);
@@ -185,6 +186,7 @@ export default function AttendanceCard({
     setOpen(false);
     setFix(null);
     setError("");
+    setLocationHelp(false);
     setPhase("notice");
     request.current = false;
     dialog.current?.close();
@@ -224,6 +226,7 @@ export default function AttendanceCard({
     setName(parsed.data.full_name);
     setStudent(parsed.data.student_id);
     setError("");
+    setLocationHelp(false);
     setFix(null);
     setPhase("locating");
     try {
@@ -272,15 +275,21 @@ export default function AttendanceCard({
     } catch (cause) {
       if (!mounted.current || generation.current !== attempt) return;
       setPhase("prepare");
+      const code =
+        cause && typeof cause === "object" && "code" in cause
+          ? cause.code
+          : null;
+      setLocationHelp(code === 1);
       setError(
-        cause &&
-          typeof cause === "object" &&
-          "code" in cause &&
-          cause.code === 1
-          ? "Cho phép truy cập vị trí trong cài đặt trình duyệt rồi thử lại."
-          : cause instanceof Error
-            ? cause.message
-            : "Không lấy được vị trí. Bật định vị rồi thử lại.",
+        code === 1
+          ? "Trình duyệt hoặc thiết bị đang chặn vị trí. Nếu đã cho phép trên website, kiểm tra cả quyền định vị của điện thoại theo hướng dẫn bên dưới."
+          : code === 2
+            ? "Thiết bị chưa xác định được vị trí. Bật Dịch vụ định vị, đến nơi có tín hiệu tốt rồi thử lại."
+            : code === 3
+              ? "Lấy vị trí quá 15 giây. Đến nơi có tín hiệu tốt rồi thử lại."
+              : cause instanceof Error
+                ? cause.message
+                : "Không lấy được vị trí. Bật định vị rồi thử lại.",
       );
     }
   };
@@ -583,6 +592,37 @@ export default function AttendanceCard({
           <p className="field-error" role="alert">
             {error}
           </p>
+        )}
+        {error && locationHelp && phase === "prepare" && (
+          <details className="attendance-location-help" open>
+            <summary>Đã cho phép vị trí nhưng vẫn bị chặn?</summary>
+            <ol>
+              <li>
+                Trên iPhone: mở{" "}
+                <strong>
+                  Cài đặt → Quyền riêng tư &amp; Bảo mật → Dịch vụ định vị
+                </strong>{" "}
+                và bật dịch vụ. Chọn{" "}
+                <strong>Trang web Safari → Khi dùng ứng dụng</strong>, bật{" "}
+                <strong>Vị trí chính xác</strong>.
+              </li>
+              <li>
+                Trong Safari: mở menu trang →{" "}
+                <strong>Cài đặt trang web → Vị trí → Cho phép</strong>. Nếu đang
+                mở thiệp trong ứng dụng khác, mở đường dẫn trực tiếp bằng
+                Safari.
+              </li>
+              <li>
+                Quay lại thiệp và bấm <strong>Lấy vị trí và quét QR</strong>.
+                Với điện thoại khác, kiểm tra cả quyền vị trí của trình duyệt
+                trong cài đặt thiết bị.
+              </li>
+            </ol>
+            <p className="field-hint">
+              Quyền camera không thay thế quyền vị trí. Không cần xóa dữ liệu
+              trình duyệt; dữ liệu này giữ liên kết điểm danh của bạn.
+            </p>
+          </details>
         )}
         {phase === "failure" && (
           <button

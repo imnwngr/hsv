@@ -135,6 +135,23 @@
 .attendance-dialog .dialog-heading button {
   flex-shrink: 0;
 }
+.attendance-location-help summary {
+  cursor: pointer;
+  min-height: 44px;
+  padding-block: 0.625rem;
+  font-weight: 600;
+}
+.attendance-location-help summary:focus-visible {
+  outline: 3px solid var(--brand);
+  outline-offset: 3px;
+}
+.attendance-location-help ol {
+  list-style: decimal;
+  padding-inline-start: 1.25rem;
+}
+.attendance-location-help li + li {
+  margin-block-start: 0.75rem;
+}
 .attendance-trigger {
   position: fixed;
   bottom: max(1rem, env(safe-area-inset-bottom));

@@ -19,6 +19,14 @@ Run [45106500917](https://github.com/imnwngr/hsv/actions/runs/45106500917) dừn
 
 Kiểm tra bản sửa: typecheck, lint, production build đạt; 172 unit/SQL đạt với `--maxWorkers=2`; ca sắp xếp đạt 24/24 lượt lặp desktop/mobile; toàn bộ browser suite đạt 228 ca, 44 skip theo điều kiện/ma trận viewport, không lỗi. Hai lượt unit chạy với số worker mặc định bị timeout 5 giây ở các ca editor, lưu cả log lỗi để đối chiếu; không sửa timeout hoặc assertion của các ca đó. Bằng chứng local nằm ở `.local/ci-fix-45106500917/`: artifact CI gốc trong `report/`, trace giải nén trong `trace/`, log kiểm thử và trace các lượt lặp trong `targeted-results/`. Browser dùng network mock, không ghi dữ liệu production.
 
+### Khi Safari đã cho phép nhưng điểm danh vẫn báo lỗi vị trí
+
+Thông báo cũ “Cho phép truy cập vị trí…” chỉ xuất hiện khi `getCurrentPosition` trả mã 1 (`PERMISSION_DENIED`), không phải do phát hiện ẩn danh. Mã này không chỉ ra lớp quyền nào từ chối. iPhone có cả quyền website trong Safari và quyền hệ thống tại **Cài đặt → Quyền riêng tư & Bảo mật → Dịch vụ định vị → Trang web Safari**; kiểm tra dịch vụ đang bật, **Khi dùng ứng dụng** và **Vị trí chính xác**. Quyền camera không thay thế quyền vị trí. Website không thể tự bật quyền ở cấp hệ điều hành.
+
+Popup bổ sung hướng dẫn hai lớp quyền, giữ dữ liệu nhập/khóa trình duyệt để thử lại và phân biệt mã 2 (chưa xác định được vị trí) với mã 3 (quá 15 giây). Không dùng Permissions API làm điều kiện cho phép, không nới bán kính/độ chính xác, không bỏ qua xác minh backend hay lấy vị trí liên tục. Không khuyên xóa dữ liệu Safari vì sẽ mất liên kết điểm danh.
+
+Bộ browser điểm danh sau thay đổi đạt 38 ca, 8 skip tránh lặp viewport. Hồi quy mới kiểm tra mã lỗi 1/2/3, không mở camera/ghi dữ liệu khi định vị lỗi, thử lại lấy vị trí mới rồi ghi đúng một lượt và giữ nguyên khóa. Ảnh hướng dẫn và axe ở 320/390/768/1440 px: `.local/attendance/location-permission-*.png`; log ở `.local/ci-fix-45106500917/safari-*.log`. Đây là Chromium với geolocation/media/network mock (gồm thiếu Permissions API), **chưa xác minh GPS hoặc Safari trên iPhone thật**; hướng dẫn mới không phải bằng chứng đã xử lý được quyền hệ thống trên thiết bị của người dùng.
+
 <a id="hsv4-rollout"></a>
 ## SQL hsv4 đã áp dụng — 23/11/2026
 

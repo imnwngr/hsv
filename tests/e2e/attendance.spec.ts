@@ -123,6 +123,7 @@ async function fixture(page: Page, admin = false) {
         cameraStops: number;
         geoCalls: number;
         denyGeo: boolean;
+        geoErrorCode?: 1 | 2 | 3;
         denyCamera: boolean;
       };
       runtime.qrVisible = false;
@@ -136,7 +137,8 @@ async function fixture(page: Page, admin = false) {
             failure: (v: unknown) => void,
           ) => {
             runtime.geoCalls++;
-            if (runtime.denyGeo) failure({ code: 1 });
+            if (runtime.denyGeo || runtime.geoErrorCode)
+              failure({ code: runtime.geoErrorCode ?? 1 });
             else
               success({
                 coords: { latitude: 10, longitude: 105, accuracy: 5 },
@@ -248,7 +250,7 @@ test("closed rounds do not auto-popup; denied permissions are explained before a
   );
   await page.getByRole("button", { name: "Lấy vị trí và quét QR" }).click();
   await expect(page.getByRole("alert")).toContainText(
-    "Cho phép truy cập vị trí",
+    "Trình duyệt hoặc thiết bị đang chặn vị trí",
   );
   expect(control.writes).toBe(0);
   expect(
@@ -257,6 +259,122 @@ test("closed rounds do not auto-popup; denied permissions are explained before a
     ),
   ).toBe(0);
 });
+for (const width of [320, 390, 768, 1440]) {
+  test(`location permission recovery preserves identity without Permissions API at ${width}px`, async ({
+    page,
+  }, info) => {
+    test.skip(info.project.name !== "desktop", "Viewport matrix runs once.");
+    await page.setViewportSize({ width, height: 800 });
+    const { control } = await fixture(page);
+    await page.addInitScript(() => {
+      Object.defineProperty(navigator, "permissions", { value: undefined });
+    });
+    await openCard(page);
+    await prepare(page);
+    const keyBefore = await page.evaluate(
+      (id) => localStorage.getItem(`hsv.attendance.key.v1.${id}`),
+      event.id,
+    );
+    await page.evaluate(() => {
+      (window as unknown as { denyGeo: boolean }).denyGeo = true;
+    });
+    const locate = page.getByRole("button", { name: "Lấy vị trí và quét QR" });
+    await locate.click();
+    await expect(page.getByRole("alert")).toContainText(
+      "Trình duyệt hoặc thiết bị đang chặn vị trí",
+    );
+    const help = page.locator(".attendance-location-help");
+    await expect(help).toContainText("Dịch vụ định vị");
+    await expect(help).toContainText("Trang web Safari → Khi dùng ứng dụng");
+    await expect(help).toContainText("Vị trí chính xác");
+    await expect(page.getByLabel("Họ tên", { exact: true })).toHaveValue(
+      "Sinh viên kiểm thử",
+    );
+    await expect(page.getByLabel("MSSV", { exact: true })).toHaveValue(
+      "TEST001",
+    );
+    expect(control.writes).toBe(0);
+    expect(
+      await page.evaluate(
+        () => (window as unknown as { cameraStarts: number }).cameraStarts,
+      ),
+    ).toBe(0);
+    await help.locator("summary").focus();
+    await page.keyboard.press("Enter");
+    await expect(help).not.toHaveAttribute("open", "");
+    await page.keyboard.press("Enter");
+    await expect(help).toHaveAttribute("open", "");
+    await help.scrollIntoViewIfNeeded();
+    await shot(page, `location-permission-${width}`);
+    const dialog = page.getByRole("dialog");
+    const bounds = await dialog.boundingBox();
+    expect(bounds!.height).toBeLessThanOrEqual(800);
+    expect(
+      await dialog.evaluate((el) => el.scrollWidth <= el.clientWidth),
+    ).toBe(true);
+    expect(
+      (await new AxeBuilder({ page }).include(".attendance-dialog").analyze())
+        .violations,
+    ).toEqual([]);
+    await page.evaluate(() => {
+      const runtime = window as unknown as {
+        denyGeo: boolean;
+        qrVisible: boolean;
+      };
+      runtime.denyGeo = false;
+      runtime.qrVisible = true;
+      document.dispatchEvent(new Event("visibilitychange"));
+    });
+    await locate.click();
+    await expect(
+      page.getByRole("heading", { name: "Đã ghi nhận điểm danh" }),
+    ).toBeVisible();
+    expect(control.writes).toBe(1);
+    expect(
+      await page.evaluate(
+        () => (window as unknown as { geoCalls: number }).geoCalls,
+      ),
+    ).toBe(2);
+    expect(
+      await page.evaluate(
+        (id) => localStorage.getItem(`hsv.attendance.key.v1.${id}`),
+        event.id,
+      ),
+    ).toBe(keyBefore);
+  });
+}
+
+for (const failure of [
+  { code: 2, message: "Thiết bị chưa xác định được vị trí" },
+  { code: 3, message: "Lấy vị trí quá 15 giây" },
+] as const) {
+  test(`location error ${failure.code} gives the right recovery without opening camera or writing`, async ({
+    page,
+  }) => {
+    const { control } = await fixture(page);
+    await openCard(page);
+    await prepare(page);
+    await page.evaluate((code) => {
+      (window as unknown as { geoErrorCode: number }).geoErrorCode = code;
+    }, failure.code);
+    await page.getByRole("button", { name: "Lấy vị trí và quét QR" }).click();
+    await expect(page.getByRole("alert")).toContainText(failure.message);
+    await expect(page.locator(".attendance-location-help")).toHaveCount(0);
+    expect(control.writes).toBe(0);
+    expect(
+      await page.evaluate(
+        () => (window as unknown as { cameraStarts: number }).cameraStarts,
+      ),
+    ).toBe(0);
+    await expect(page.getByLabel("Họ tên", { exact: true })).toHaveValue(
+      "Sinh viên kiểm thử",
+    );
+    await expect(page.getByLabel("MSSV", { exact: true })).toHaveValue(
+      "TEST001",
+    );
+  });
+}
+
 test("lost response recovers own result, reload preserves key, corrections preserve one record", async ({
   page,
 }) => {

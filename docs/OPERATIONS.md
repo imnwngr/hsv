@@ -1,6 +1,19 @@
 # Vận hành HSV CTUT 3.0.0
 
-Hướng dẫn này mô tả source nhánh `hsv4`; trạng thái SQL mới nhất được xác minh ngày **23/11/2026**. Không sao chép seed hay DDL v1 vào tài liệu; các file SQL đã áp dụng không phải danh sách lệnh cần chạy lại khi pull source.
+Hướng dẫn này mô tả source `main`, đã nhận `hsv4` qua PR #2 tại `0d17ad0`; trạng thái SQL mới nhất được xác minh ngày **23/11/2026**. Nhánh `hsv4` đã xóa sau khi kiểm tra toàn bộ lịch sử nằm trong `main`. Không sao chép seed hay DDL v1 vào tài liệu; các file SQL đã áp dụng không phải danh sách lệnh cần chạy lại khi pull source.
+
+Release lịch sử [v3.0.0](https://github.com/imnwngr/hsv/releases/tag/v3.0.0) đã được tạo tại merge commit `5d663574be5a2357c2b161385d1b4fe0d430a75f` của PR #1, không phải HEAD hiện tại. Release này không chứa HSV4, không chạy SQL hoặc deploy lại v3. Chưa tạo release v4.0.0.
+
+<a id="editor-polish"></a>
+## Thu gọn editor và sửa toast — 23/11/2026
+
+Nút đóng toast dùng vùng bấm 44×44 px, SVG 16 px, đặt bên phải trong thông báo; hỗ trợ Enter/focus và thông báo lỗi nhiều dòng. Editor giảm khoảng đệm/cỡ tiêu đề, nhóm các trường ngắn, thu preview màu/ảnh và sắp xếp cấu hình điểm danh. Track grid, nhập giờ và nút sắp xếp cho phép xuống dòng khi phóng chữ. Không đổi payload, dirty state, lưu/hủy, media, snapshot hay SQL.
+
+Source chính: `AdminShell.tsx`, `EventForm.tsx`, `AttendanceEditor.tsx`, `admin.css`, `attendance.css`; hồi quy mới ở `tests/e2e/editor-layout.spec.ts`. Không thêm dependency. Lint, production build gồm typecheck và 172 unit/SQL đạt; lượt browser đầy đủ đạt 227 ca, 43 skip do ma trận chỉ chạy một project. Sau sửa thêm bố cục chữ 200%, lượt tái kiểm editor/nhập giờ/lưu đạt 67 ca, 21 skip; bộ 5 ca chuyên biệt được chạy lại sau chốt khoảng đệm. Log và ảnh nằm tại `.local/editor-polish/` (ignored).
+
+Ảnh `before/`, `after/` và `inspection/` bao phủ 320/390/768/1440 px; axe không ghi nhận vi phạm trong editor/toast được kiểm. Chữ 200% không tràn ngang, lỗi lưu giữ dữ liệu và cho thử lại; nút đóng thao tác được bằng bàn phím. Kiểm thử ghi dùng network mocks. Đây không phải bằng chứng camera/GPS, screen reader hoặc bàn phím ảo trên điện thoại thật.
+
+Theo yêu cầu người dùng, bản sửa được commit/push lên `main`. Workflow sẵn có chạy kiểm thử và deploy Pages khi gate `HSV_V3_PRODUCTION_READY=true`; không sửa workflow hoặc gate. Trạng thái deploy phải đọc từ run tương ứng trên GitHub Actions, không suy ra từ việc push thành công. Các mốc “chưa deploy” dưới đây ghi lại trạng thái tại đợt SQL trước đó.
 
 <a id="hsv4-rollout"></a>
 ## SQL hsv4 đã áp dụng — 23/11/2026

@@ -114,6 +114,18 @@ Phạm vi chốt của better-interface là luồng tìm/lọc/mở/thao tác s�
 
 Kết luận UI: **Approve trong phạm vi trên**; không còn phát hiện HIGH đang mở trong các ca đã kiểm. Đây không phải phê duyệt phát hành: SQL nhân bản/thời lượng, policy mật khẩu backend và kiểm thiết bị thật vẫn có trạng thái riêng trong tài liệu vận hành.
 
+### Editor gọn và thông báo lưu — 23/11/2026
+
+Design-team dùng hướng HSV hiện có, Hallmark cho tính nhất quán component, better-layout cho nhóm trường và Anti-slop `during` theo cấu hình lưu. Không dựng theme mới hoặc thêm dependency.
+
+Toast giữ nút đóng, chuyển vào bên phải nội dung với vùng bấm vuông 44 px, SVG 16 px và tên truy cập “Đóng thông báo”. CSS không còn để `min-height` nút chung kéo nút tròn mặc định của Sonner thành hình bầu dục. Khoảng chừa riêng cho nút bảo vệ cả thông báo nhiều dòng; hover/focus giữ màu trạng thái.
+
+Editor giảm cỡ tiêu đề và khoảng đệm; radio loại thiệp nằm cạnh nội dung. Tên/mã sự kiện và tên/địa chỉ địa điểm dùng cùng hàng khi đủ rộng, xếp dọc trên mobile. Màu tùy chỉnh nằm cùng dòng với mã màu, ảnh địa điểm có preview tối đa 260 px, giữ toàn bộ ảnh. Bán kính/chu kỳ QR/thời lượng nằm trong cùng nhóm, ghim và lịch có tiêu đề cạnh thao tác. Sáu mục sticky, dirty state, Lưu/Hủy, cảnh báo rời trang và payload giữ nguyên.
+
+Số đo cùng fixture ở 1440 px: thông tin sự kiện 440 → 272 px, điểm danh 1.263 → 757 px; ở 390 px lần lượt 541 → 432 và 1.720 → 1.451 px. Không coi đây là số liệu người dùng thực. Fieldset có track `minmax(0, 1fr)`; nhập giờ và nút sắp xếp xuống dòng khi phóng chữ, khoảng đệm giới hạn độc lập cỡ chữ để giữ diện tích nhập.
+
+Kiểm tra ảnh và tương tác ở 320/390/768/1440 px, axe trong editor/toast, chữ 200%, nút đóng bằng bàn phím, lưu lỗi/thử lại và sticky không che phần đích. Bằng chứng ignored: `.local/editor-polish/`; kết quả chạy ở [vận hành](docs/OPERATIONS.md#editor-polish). Không kiểm screen reader hoặc bàn phím ảo trên thiết bị thật trong đợt này.
+
 ### README trên GitHub
 
 README dùng logo chính thức, xanh Hội và giấy ấm từ hệ thiết kế này. Hình bìa SVG chỉ minh họa loại thiệp/màu, không thay bằng chứng giao diện; bản mobile có bố cục riêng. Nội dung chính là chữ Markdown/HTML có thể chọn, tìm và đọc bằng công cụ hỗ trợ. Typography do GitHub quyết định; không tải font hoặc dùng CSS tùy ý. ENERGY 2 / RHYTHM 1 / MOTION 1: tài liệu tĩnh, ưu tiên đọc và đi đến hướng dẫn.

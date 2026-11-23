@@ -51,11 +51,13 @@ Tạo sự kiện → chọn loại và màu → chọn khách mời → lưu �
 
 Editor quản lý nội dung; Admin quản lý thêm quyền Editor. Admin nhập email trong một luồng: tài khoản đã có được cấp quyền, email mới đi qua lời mời khi server cho phép. Giao diện phân biệt chờ nhận lời mời, lỗi một phần và cần khôi phục. Quyền được kiểm tra tại server/RLS; retry không tự gửi lại email.
 
-### Điểm danh và điều hướng sự kiện (nhánh hsv4)
+### Điểm danh và điều hướng sự kiện
 
-Nhánh `hsv4` bổ sung công tắc công khai lưu ngay tại danh sách quản trị, sáu mục điều hướng bám theo editor và thiệp mặc định cho mỗi sự kiện. Điểm danh dành cho thiệp nhóm của Thiệp mời: hai đợt theo lịch, ghim/bán kính xác nhận, QR động, kết quả và sửa thông tin ngay trong thiệp. Quản trị xem lịch sử sửa và xuất CSV để nhập Google Sheets/Excel. Có nhân bản sự kiện, Plus Code, thời lượng mặc định 10 phút/đợt và bán kính mặc định 50 m; danh sách quản trị gọn hơn với tìm kiếm không dấu và bộ lọc giữ trong URL.
+Phần mở rộng từ `hsv4` đã được gộp vào `main` qua PR #2; nhánh cũ đã xóa. Có công tắc công khai lưu ngay tại danh sách quản trị, sáu mục điều hướng bám theo editor và thiệp mặc định cho mỗi sự kiện. Điểm danh dành cho thiệp nhóm của Thiệp mời: hai đợt theo lịch, ghim/bán kính xác nhận, QR động, kết quả và sửa thông tin ngay trong thiệp. Quản trị xem lịch sử sửa và xuất CSV để nhập Google Sheets/Excel. Có nhân bản sự kiện, Plus Code, thời lượng mặc định 10 phút/đợt và bán kính mặc định 50 m; danh sách quản trị gọn hơn với tìm kiếm không dấu và bộ lọc giữ trong URL.
 
-**SQL đã áp dụng ngày 23/11/2026:** đủ ba migration nền điểm danh, thời lượng và nhân bản trên backend đang kết nối. Snapshot trước/sau, hash và mã migration nằm trong [phiên bản SQL](supabase/releases/README.md). Không chạy lại SQL khi pull nhánh. Frontend Pages và Edge `attendance-location` chưa được deploy trong đợt này; không có dependency mới. Xem [trạng thái và kiểm chứng](docs/OPERATIONS.md#hsv4-rollout).
+**SQL đã áp dụng ngày 23/11/2026:** đủ ba migration nền điểm danh, thời lượng và nhân bản trên backend đang kết nối. Snapshot trước/sau, hash và mã migration nằm trong [phiên bản SQL](supabase/releases/README.md). Không chạy lại SQL khi pull. Pages theo workflow `main`; Edge `attendance-location` chưa deploy. Không có dependency mới. Xem [trạng thái và kiểm chứng](docs/OPERATIONS.md#editor-polish).
+
+[Release v3.0.0](https://github.com/imnwngr/hsv/releases/tag/v3.0.0) ghim mốc merge PR #1 tại `5d66357`, không bao gồm phần mở rộng HSV4. Chưa tạo release v4.0.0.
 
 <a id="chay-local"></a>
 ## Chạy local

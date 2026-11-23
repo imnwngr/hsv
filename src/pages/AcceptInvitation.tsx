@@ -56,7 +56,7 @@ export default function AcceptInvitation() {
         <input
           type="password"
           autoComplete="new-password"
-          minLength={10}
+          minLength={6}
           required
           disabled={busy}
           value={password}
@@ -64,7 +64,7 @@ export default function AcceptInvitation() {
           aria-describedby="password-hint"
         />
       </label>
-      <small id="password-hint">Ít nhất 10 ký tự.</small>
+      <small id="password-hint">Ít nhất 6 ký tự.</small>
       {error && <p role="alert">{error}</p>}
       <button disabled={busy}>
         {busy ? "Đang lưu…" : "Lưu mật khẩu và tiếp tục"}

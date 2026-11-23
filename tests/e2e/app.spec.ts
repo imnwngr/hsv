@@ -1192,10 +1192,28 @@ test("guest directory compact/full, dirty guard, reorder and reload (mock API)",
   const handle = page.getByRole("button", {
     name: "Sắp xếp Thầy ThS. Khách 0",
   });
-  await handle.focus();
-  await page.keyboard.press("Space");
+  const liftWithKeyboard = async (id: string, name: string) => {
+    const grip = page.getByRole("button", { name, exact: true });
+    await expect(grip).toBeEnabled();
+    await grip.focus();
+    await page.keyboard.press("Space");
+    await expect(grip).toHaveAttribute("aria-pressed", "true");
+    await expect(page.locator(".directory-drag-overlay")).toBeVisible();
+    await expect(
+      page.getByRole("status").filter({
+        hasText: `Draggable item ${id} was moved over droppable area ${id}.`,
+      }),
+    ).toBeAttached();
+    // KeyboardSensor attaches keydown in a timer after lift; a placeholder alone is too early.
+    await page.evaluate(
+      () =>
+        new Promise<void>((resolve) =>
+          requestAnimationFrame(() => setTimeout(resolve, 0)),
+        ),
+    );
+  };
+  await liftWithKeyboard("guest-0", "Sắp xếp Thầy ThS. Khách 0");
   await expect(page.locator(".directory-row.is-placeholder")).toHaveCount(1);
-  await expect(page.locator(".directory-drag-overlay")).toBeVisible();
   await expect(page.locator('[data-guest-row="guest-1"]')).toHaveCSS(
     "transition-duration",
     "0.18s",
@@ -1306,8 +1324,7 @@ test("guest directory compact/full, dirty guard, reorder and reload (mock API)",
   const failingHandle = page.getByRole("button", {
     name: "Sắp xếp Thầy ThS. Khách 0",
   });
-  await failingHandle.focus();
-  await page.keyboard.press("Space");
+  await liftWithKeyboard("guest-0", "Sắp xếp Thầy ThS. Khách 0");
   await expect(page.locator(".is-placeholder")).toHaveCount(1);
   await page.keyboard.press("ArrowUp");
   await expect(
@@ -1320,6 +1337,9 @@ test("guest directory compact/full, dirty guard, reorder and reload (mock API)",
   );
   await page.keyboard.press("Space");
   await rejected;
+  await expect(failingHandle).toBeEnabled();
+  await expect(page.locator(".directory-drag-overlay")).toHaveCount(0);
+  expect(rows.map((g) => g.id)).toEqual(before);
   await expect
     .poll(async () =>
       page
@@ -1340,10 +1360,7 @@ test("guest directory compact/full, dirty guard, reorder and reload (mock API)",
     "guest-1",
   );
   await page.emulateMedia({ reducedMotion: "reduce" });
-  await page
-    .getByRole("button", { name: "Sắp xếp Thầy ThS. Khách 1", exact: true })
-    .focus();
-  await page.keyboard.press("Space");
+  await liftWithKeyboard("guest-1", "Sắp xếp Thầy ThS. Khách 1");
   await expect(page.locator(".directory-drag-overlay")).toHaveCSS(
     "transform",
     "none",

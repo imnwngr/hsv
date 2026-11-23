@@ -15,6 +15,10 @@ Source chính: `AdminShell.tsx`, `EventForm.tsx`, `AttendanceEditor.tsx`, `admin
 
 Theo yêu cầu người dùng, bản sửa được commit/push lên `main`. Workflow sẵn có chạy kiểm thử và deploy Pages khi gate `HSV_V3_PRODUCTION_READY=true`; không sửa workflow hoặc gate. Trạng thái deploy phải đọc từ run tương ứng trên GitHub Actions, không suy ra từ việc push thành công. Các mốc “chưa deploy” dưới đây ghi lại trạng thái tại đợt SQL trước đó.
 
+Run [45106500917](https://github.com/imnwngr/hsv/actions/runs/45106500917) dừng ở test sắp xếp danh bạ trên mobile: thao tác kéo chạm đã lưu, nhưng phím ↑ của lượt kéo tiếp theo không đổi vị trí. Trace ghi nhận placeholder đã xuất hiện trong khi danh sách vẫn cuộn theo phím; `KeyboardSensor` của dnd-kit đăng ký bộ nhận phím bằng timer sau khi bắt đầu kéo. Test nay chờ trạng thái kéo, overlay và một nhịp render/timer trước khi gửi phím tiếp theo. Kiểm tra rollback đợi lưu kết thúc và đối chiếu cả thứ tự giao diện lẫn dữ liệu mock. Không bỏ assertion, thêm retry hoặc tăng timeout; không đổi source ứng dụng, workflow, dependency hay SQL.
+
+Kiểm tra bản sửa: typecheck, lint, production build đạt; 172 unit/SQL đạt với `--maxWorkers=2`; ca sắp xếp đạt 24/24 lượt lặp desktop/mobile; toàn bộ browser suite đạt 228 ca, 44 skip theo điều kiện/ma trận viewport, không lỗi. Hai lượt unit chạy với số worker mặc định bị timeout 5 giây ở các ca editor, lưu cả log lỗi để đối chiếu; không sửa timeout hoặc assertion của các ca đó. Bằng chứng local nằm ở `.local/ci-fix-45106500917/`: artifact CI gốc trong `report/`, trace giải nén trong `trace/`, log kiểm thử và trace các lượt lặp trong `targeted-results/`. Browser dùng network mock, không ghi dữ liệu production.
+
 <a id="hsv4-rollout"></a>
 ## SQL hsv4 đã áp dụng — 23/11/2026
 

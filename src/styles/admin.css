@@ -1,10 +1,29 @@
 .site-admin {
   background: var(--paper);
 }
+.site-admin [data-sonner-toaster][data-sonner-theme] {
+  font-family: var(--font-sans);
+  --success-bg: var(--success-soft);
+  --success-text: var(--success);
+  --success-border: var(--success);
+  --error-bg: var(--danger-soft);
+  --error-text: var(--danger);
+  --error-border: var(--danger);
+  --warning-bg: var(--warning-soft);
+  --warning-text: var(--warning);
+  --warning-border: var(--warning);
+  --info-bg: var(--selected);
+  --info-text: var(--brand);
+  --info-border: var(--brand);
+}
 .site-admin > main {
   max-width: 1600px;
 }
 .site-admin .site-header {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  background: var(--paper);
   max-width: 1600px;
   min-height: 80px;
 }
@@ -19,7 +38,7 @@
 }
 .admin-sidebar {
   position: sticky;
-  top: 0;
+  top: 80px;
   height: calc(100svh - 80px);
   min-height: 450px;
   border-right: 1px solid var(--border);
@@ -135,43 +154,6 @@
 .admin .section-label {
   font-size: 0.8125rem;
 }
-.dashboard-overview {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  margin-block: 2rem;
-  border: 1px solid var(--border);
-  background: var(--surface);
-  border-radius: var(--radius-panel);
-}
-.dashboard-overview > div {
-  padding: 1.25rem;
-  border-right: 1px solid var(--border);
-}
-.dashboard-overview > div:last-child {
-  border-right: 0;
-}
-.dashboard-overview dt {
-  font-size: 0.75rem;
-  color: var(--muted);
-}
-.dashboard-overview dd {
-  font-size: 2.5rem;
-  font-weight: 400;
-  letter-spacing: -0.05em;
-  line-height: 1.2;
-  margin: 0.75rem 0 0;
-  color: var(--brand);
-}
-.dashboard-overview > div:first-child {
-  background: var(--brand);
-  border-radius: 11px 0 0 11px;
-}
-.dashboard-overview > div:first-child dt {
-  color: var(--sage);
-}
-.dashboard-overview > div:first-child dd {
-  color: var(--paper);
-}
 .toolbar {
   padding-block: 1rem;
   margin-bottom: 0.75rem;
@@ -184,51 +166,237 @@
 .toolbar > label:first-child {
   flex: 2;
 }
+.event-dashboard .section-head {
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+.event-dashboard h1 {
+  margin: 0;
+}
+.dashboard-description {
+  color: var(--muted);
+  font-size: var(--text-small);
+  margin: 0.5rem 0 0;
+}
 .admin-list {
-  display: grid;
-  gap: 1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-panel);
+  background: var(--surface);
 }
 .admin-event {
-  position: relative;
-  transition: border-color var(--motion-fast);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 1.5rem;
+  align-items: center;
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid var(--border);
 }
-.admin-event:hover {
-  border-color: var(--border-strong);
+.admin-event:last-child {
+  border-bottom: 0;
+}
+.admin-event-content {
+  min-width: 0;
 }
 .admin-event-heading {
   display: flex;
-  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.5rem 0.75rem;
   align-items: center;
-  gap: 1rem;
-}
-.event-code {
-  font-size: 0.75rem;
+  font-size: var(--text-caption);
   color: var(--muted);
-  overflow-wrap: anywhere;
+}
+.event-type-label {
+  color: var(--brand);
+  font-weight: 500;
+}
+.event-copy-label,
+.event-attendance-label {
+  padding-inline: 0.5rem;
+  border-inline-start: 1px solid var(--border-strong);
 }
 .admin-event h2 {
-  font-size: 1.5rem;
-  margin: 1rem 0 0.75rem;
+  font-size: 1.125rem;
+  line-height: 1.5;
+  margin: 0.375rem 0;
+  letter-spacing: -0.01em;
 }
-.admin-event > p {
+.admin-event h2 a {
+  color: var(--ink);
+  text-decoration: none;
+  text-underline-offset: 4px;
+}
+.admin-event h2 a:hover {
+  color: var(--brand);
+  text-decoration: underline;
+}
+.admin-event-date {
   display: flex;
+  gap: 0.5rem;
+  align-items: start;
+  color: var(--muted);
+  font-size: var(--text-caption);
+  margin: 0.375rem 0;
+}
+.admin-event-date svg {
+  flex-shrink: 0;
+  margin-top: 3px;
+}
+.event-code {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-size: 0.75rem;
+  color: var(--muted);
+  margin: 0.25rem 0 0;
+}
+.admin-event-controls {
+  display: grid;
+  justify-items: end;
+  gap: 0.75rem;
+  max-width: 24rem;
+}
+.admin-event-controls .switch {
+  padding-inline: 0;
+}
+.admin-event-actions {
+  display: flex;
+  flex-wrap: wrap;
   align-items: start;
   gap: 0.5rem;
-  font-size: 0.8125rem;
-  color: var(--muted);
 }
-.admin-event > p svg {
-  flex: 0 0 16px;
-  margin-top: 4px;
+.admin-event-actions :is(button, a, summary) {
+  font-size: var(--text-caption);
 }
-.admin-event .actions {
-  margin-top: 1.5rem;
+.admin-event-actions > a {
+  padding-inline: 0.75rem;
 }
-.admin-event .actions > :last-child {
-  margin-left: auto;
+.duplicate-event {
+  min-width: 0;
+  max-width: 100%;
 }
-.admin-event .actions :is(button, a) {
-  font-size: 0.8125rem;
+.duplicate-event > button {
+  padding-inline: 0.75rem;
+}
+.duplicate-event .field-error {
+  max-width: 23ch;
+  margin: 0.5rem 0 0;
+}
+.event-actions {
+  position: relative;
+}
+.event-actions summary {
+  display: flex;
+  gap: 0.375rem;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem 0.75rem;
+  min-height: 44px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-control);
+  color: var(--brand);
+  cursor: pointer;
+  list-style: none;
+}
+.event-actions summary::-webkit-details-marker {
+  display: none;
+}
+.event-actions summary:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 4px;
+}
+.event-actions[open] summary {
+  background: var(--selected);
+  border-color: var(--brand);
+}
+.event-actions-panel {
+  position: absolute;
+  z-index: 10;
+  inset-inline-end: 0;
+  top: calc(100% + 0.5rem);
+  width: 230px;
+  max-width: 70vw;
+  padding: 0.375rem;
+  display: grid;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-panel);
+  background: var(--surface-raised);
+  box-shadow: var(--shadow-paper);
+}
+.event-actions-panel :is(button, a) {
+  display: flex;
+  align-items: center;
+  justify-content: start;
+  gap: 0.75rem;
+  padding: 0.625rem 0.75rem;
+  min-height: 44px;
+  border: 0;
+  border-radius: var(--radius-control);
+  background: transparent;
+  color: var(--brand);
+  text-decoration: none;
+}
+.event-actions-panel :is(button, a):hover {
+  color: var(--brand);
+  background: var(--selected);
+}
+.event-actions-panel .danger-text {
+  color: var(--danger);
+  margin-top: 0.375rem;
+  border-top: 1px solid var(--border);
+  border-radius: 0;
+}
+.event-actions-panel .danger-text:hover {
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+@media (max-width: 1280px) {
+  .admin-event {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.75rem;
+  }
+  .admin-event-controls {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: start;
+    justify-content: space-between;
+    max-width: none;
+  }
+}
+@media (max-width: 600px) {
+  .event-dashboard .section-head {
+    align-items: start;
+    gap: 1rem;
+  }
+  .event-dashboard h1 {
+    font-size: 1.75rem;
+  }
+  .admin-event {
+    padding: 1rem;
+  }
+  .admin-event-controls {
+    display: grid;
+    justify-items: start;
+    justify-content: stretch;
+    gap: 0.5rem;
+  }
+  .admin-event-actions {
+    width: 100%;
+  }
+  .admin-event-actions > a {
+    flex: 1;
+    justify-content: center;
+  }
+  .admin-event-actions > a svg,
+  .admin-event-actions .edit-invitations-label,
+  .event-actions .action-label {
+    display: none;
+  }
+  .event-actions summary {
+    width: 44px;
+    padding: 0;
+  }
+  .event-actions {
+    margin-inline-start: auto;
+  }
 }
 .login-layout {
   display: grid;
@@ -276,15 +444,21 @@
   max-width: 42rem;
 }
 .editor-nav {
+  position: sticky;
+  top: var(--editor-header-height, 80px);
+  z-index: 20;
+  background: var(--paper);
   display: flex;
   align-items: stretch;
   gap: 0.25rem;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+  overflow-x: auto;
   padding: 0.75rem 0;
   margin-block: 1rem 1.5rem;
   border-block: 1px solid var(--border);
 }
 .editor-nav a {
+  flex: 0 0 auto;
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -301,11 +475,23 @@
 .editor-nav a:hover {
   background: var(--selected);
 }
+.editor-nav a[aria-current="location"] {
+  background: var(--selected);
+  color: var(--brand);
+  text-decoration: underline;
+  text-underline-offset: 5px;
+}
+.publication-control {
+  min-width: 0;
+}
+.publication-control > [role="status"] {
+  font-size: 0.8125rem;
+}
 .editor form > fieldset {
   padding: clamp(1rem, 3vw, 2rem);
 }
 .editor :is(fieldset, section)[id] {
-  scroll-margin-top: 1.5rem;
+  scroll-margin-top: var(--editor-scroll-offset, 160px);
 }
 .editor .section-number {
   display: inline-block;
@@ -622,36 +808,11 @@ html:has(.dirty-save-bar) {
   }
 }
 @media (max-width: 600px) {
-  .dashboard-overview {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-  .dashboard-overview > div {
-    padding: 1rem;
-    border-bottom: 1px solid var(--border);
-  }
-  .dashboard-overview > div:first-child {
-    border-radius: 11px 0 0 0;
-  }
-  .dashboard-overview > div:nth-child(even) {
-    border-right: 0;
-  }
-  .dashboard-overview > div:nth-child(n + 3) {
-    border-bottom: 0;
-  }
-  .dashboard-overview dd {
-    font-size: 2rem;
-  }
   .toolbar {
     gap: 0.75rem;
   }
   .toolbar > label {
     min-width: 100%;
-  }
-  .admin-event .actions {
-    gap: 0.5rem;
-  }
-  .admin-event .actions > :first-child {
-    width: 100%;
   }
   .admin-breadcrumb {
     gap: 0.75rem;
@@ -662,11 +823,10 @@ html:has(.dirty-save-bar) {
     font-size: 0.6875rem;
   }
   .editor-nav {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    display: flex;
   }
   .editor-nav a {
-    padding: 0.5rem 0.25rem;
+    padding: 0.5rem 0.75rem;
   }
   .dirty-save-bar {
     display: grid;

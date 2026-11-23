@@ -7,18 +7,23 @@ import {
   eventYear,
   filterEvents,
   formatDate,
-  invitationUrl,
   eventListDate,
-  orderEvents,
+  eventStatus,
+  orderAdminEvents,
   typeLabel,
 } from "../lib/domain";
 import { errorMessage } from "../lib/supabase";
-import { Empty, ErrorState, Loading } from "../components/Feedback";
+import { ErrorState, Loading } from "../components/Feedback";
 import { EventFilters } from "../components/EventFilters";
+import { EventSearch } from "../components/EventSearch";
 import { Confirm } from "../components/Confirm";
 import type { ClubEvent } from "../types/domain";
-import { Plus, ArrowUpRight, CalendarDays } from "lucide-react";
+import { Plus, ArrowUpRight, CalendarDays, SearchX } from "lucide-react";
 import { useClock } from "../hooks/useClock";
+import { useEventListFilters } from "../hooks/useEventListFilters";
+import { PublicationSwitch } from "../features/events/PublicationSwitch";
+import { DuplicateEventButton } from "../features/events/DuplicateEventButton";
+import { EventActions } from "../features/events/EventActions";
 export default function Dashboard() {
   const now = useClock();
   const query = useQuery({
@@ -26,23 +31,58 @@ export default function Dashboard() {
     queryFn: () => listEvents(true),
   });
   const cache = useQueryClient();
-  const [search, setSearch] = useState("");
-  const [month, setMonth] = useState("");
-  const [year, setYear] = useState("");
-  const [status, setStatus] = useState("");
+  const {
+    search,
+    setSearch,
+    month,
+    setMonth,
+    year,
+    setYear,
+    view: status,
+    setView: setStatus,
+    clearFilters,
+  } = useEventListFilters();
   const [deleting, setDeleting] = useState<ClubEvent | null>(null);
   const [busy, setBusy] = useState(false);
   const events = query.data ?? [];
-  const filtered = orderEvents(
+  const hasFilters = !!(search || month || year || status);
+  const views = [
+    { value: "", label: "Tất cả", count: events.length },
+    {
+      value: "published",
+      label: "Đã công khai",
+      count: events.filter((e) => e.status === "published").length,
+    },
+    {
+      value: "draft",
+      label: "Chưa công khai",
+      count: events.filter((e) => e.status === "draft").length,
+    },
+    {
+      value: "upcoming",
+      label: "Sắp diễn ra",
+      count: events.filter(
+        (e) => e.status === "published" && eventStatus(e, now) === "upcoming",
+      ).length,
+    },
+  ];
+  const filtered = orderAdminEvents(
     filterEvents(events, month, year, search),
-    now,
-  ).filter((e) => !status || e.status === status);
+  ).filter(
+    (e) =>
+      !status ||
+      (status === "upcoming"
+        ? e.status === "published" && eventStatus(e, now) === "upcoming"
+        : e.status === status),
+  );
   return (
-    <section className="admin">
+    <section className="admin event-dashboard">
       <div className="section-head">
         <div>
-          <p className="section-label">Sự kiện Hội Sinh viên CTUT</p>
           <h1>Quản lý sự kiện</h1>
+          <p className="dashboard-description">
+            Nội dung, thiệp và điểm danh trong một nơi.
+          </p>
         </div>
         <div className="actions">
           <Link className="button" to="/admin/new">
@@ -51,123 +91,147 @@ export default function Dashboard() {
         </div>
       </div>
       {query.data && !query.error && (
-        <dl className="dashboard-overview">
-          <div>
-            <dt>Tổng sự kiện</dt>
-            <dd>{events.length}</dd>
-          </div>
-          <div>
-            <dt>Đã công bố</dt>
-            <dd>{events.filter((e) => e.status === "published").length}</dd>
-          </div>
-          <div>
-            <dt>Bản nháp</dt>
-            <dd>{events.filter((e) => e.status === "draft").length}</dd>
-          </div>
-          <div>
-            <dt>Sắp diễn ra</dt>
-            <dd>
-              {
-                events.filter(
-                  (e) =>
-                    e.status === "published" &&
-                    e.event_type !== "congratulation" &&
-                    !!e.starts_at &&
-                    Date.parse(e.starts_at) > now,
-                ).length
-              }
-            </dd>
-          </div>
-        </dl>
+        <div
+          className="event-views"
+          role="group"
+          aria-label="Lọc trạng thái sự kiện"
+        >
+          {views.map((view) => (
+            <button
+              key={view.value}
+              type="button"
+              aria-pressed={status === view.value}
+              onClick={() => setStatus(view.value)}
+            >
+              {view.label}
+              <span className="view-count">{view.count}</span>
+            </button>
+          ))}
+        </div>
       )}
-      <div className="toolbar">
-        <label>
-          Tìm sự kiện
-          <input
-            type="search"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Tên hoặc mã sự kiện"
-          />
-        </label>
+      <div
+        className="event-toolbar"
+        role="search"
+        aria-label="Tìm và lọc sự kiện"
+      >
+        <EventSearch value={search} onChange={setSearch} />
         <EventFilters
           month={month}
           year={year}
           setMonth={setMonth}
           setYear={setYear}
+          showReset={false}
           years={[...new Set(events.map((e) => eventYear(eventListDate(e))))]
             .sort()
             .reverse()}
         />
-        <label>
-          Công bố
-          <select value={status} onChange={(e) => setStatus(e.target.value)}>
-            <option value="">Tất cả</option>
-            <option value="draft">Bản nháp</option>
-            <option value="published">Đã công bố</option>
-          </select>
-        </label>
+        {hasFilters && (
+          <button
+            type="button"
+            className="secondary filter-reset"
+            onClick={clearFilters}
+          >
+            Xóa bộ lọc
+          </button>
+        )}
       </div>
-      <p className="field-hint">
-        Lọc theo ngày diễn ra của Thiệp mời và ngày tạo của Thiệp chúc.
-      </p>
-      {!query.isPending && !query.error && (
+      <div className="list-context">
         <p className="result-count" role="status">
-          {filtered.length} sự kiện trong danh sách
+          {!query.isPending && !query.error
+            ? `${filtered.length} sự kiện${hasFilters ? " phù hợp" : " trong danh sách"}`
+            : ""}
         </p>
-      )}
+        <p>
+          Ngày bắt đầu: mới nhất trước
+          <span className="filter-date-note">Thiệp chúc lọc theo ngày tạo</span>
+        </p>
+      </div>
       {query.isPending ? (
         <Loading />
       ) : query.error ? (
         <ErrorState error={query.error} retry={() => void query.refetch()} />
       ) : !filtered.length ? (
-        <Empty>Không có sự kiện phù hợp.</Empty>
+        <div className="state">
+          <SearchX size={28} aria-hidden="true" />
+          <h2>
+            {hasFilters
+              ? "Không tìm thấy sự kiện"
+              : "Bắt đầu với sự kiện đầu tiên"}
+          </h2>
+          <p>
+            {hasFilters
+              ? "Thử tên, mã hoặc thời gian khác."
+              : "Tạo nội dung, chọn người nhận rồi công khai khi đã sẵn sàng."}
+          </p>
+          {hasFilters ? (
+            <button type="button" className="secondary" onClick={clearFilters}>
+              Hiện tất cả sự kiện
+            </button>
+          ) : (
+            <Link className="button" to="/admin/new">
+              Thêm sự kiện đầu tiên
+            </Link>
+          )}
+        </div>
       ) : (
         <div className="admin-list">
           {filtered.map((event) => (
-            <article className="panel admin-event" key={event.id}>
-              <div className="admin-event-heading">
-                <span className={`status ${event.status}`}>
-                  {event.status === "published" ? "Đã công bố" : "Bản nháp"}
-                </span>
-                <span className="event-code">{event.code}</span>
-                <span>{typeLabel(event.event_type)}</span>
+            <article
+              className="admin-event"
+              key={event.id}
+              data-event-code={event.code}
+              aria-labelledby={`event-${event.id}`}
+            >
+              <div className="admin-event-content">
+                <div className="admin-event-heading">
+                  <span className="event-type-label">
+                    {typeLabel(event.event_type)}
+                  </span>
+                  {event.duplicated_from_id && (
+                    <span className="event-copy-label">Bản sao</span>
+                  )}
+                  {event.event_type !== "congratulation" &&
+                    event.attendance_config?.enabled && (
+                      <span className="event-attendance-label">
+                        Có điểm danh
+                      </span>
+                    )}
+                </div>
+                <h2 className="event-title" id={`event-${event.id}`}>
+                  <Link to={`/admin/edit/${event.code}`}>{event.title}</Link>
+                </h2>
+                <p className="admin-event-date">
+                  <CalendarDays size={16} aria-hidden="true" />
+                  <span>
+                    {event.event_type === "congratulation"
+                      ? "Ngày tạo: "
+                      : !event.starts_at
+                        ? "Chưa có lịch. Ngày tạo: "
+                        : ""}
+                    <time dateTime={eventListDate(event)}>
+                      {formatDate(eventListDate(event))}
+                    </time>
+                  </span>
+                </p>
+                <p className="event-code">{event.code}</p>
               </div>
-              <h2 className="event-title">{event.title}</h2>
-              <p>
-                <CalendarDays size={16} aria-hidden="true" />
-                {event.event_type === "congratulation" ? "Ngày tạo: " : ""}
-                {formatDate(eventListDate(event))}
-              </p>
-              <div className="actions">
-                <Link
-                  className="button secondary"
-                  to={`/admin/edit/${event.code}`}
-                >
-                  Chỉnh sửa & thiệp{" "}
-                  <ArrowUpRight size={16} aria-hidden="true" />
-                </Link>
-                <button
-                  className="secondary"
-                  onClick={() =>
-                    void navigator.clipboard
-                      .writeText(
-                        invitationUrl(event.code, undefined, event.event_type),
-                      )
-                      .then(
-                        () => toast.success("Đã sao chép liên kết"),
-                        () => toast.error("Không thể truy cập clipboard"),
-                      )
-                  }
-                >
-                  Sao chép link
-                </button>
-                <button
-                  className="danger-text"
-                  onClick={() => setDeleting(event)}
-                >
-                  Xóa
-                </button>
+              <div className="admin-event-controls">
+                <PublicationSwitch event={event} />
+                <div className="admin-event-actions">
+                  <Link
+                    className="button secondary"
+                    to={`/admin/edit/${event.code}`}
+                  >
+                    Chỉnh sửa
+                    <span className="edit-invitations-label"> & thiệp</span>{" "}
+                    <ArrowUpRight size={16} aria-hidden="true" />
+                  </Link>
+                  <DuplicateEventButton event={event} />
+                  <EventActions
+                    event={event}
+                    onDelete={() => setDeleting(event)}
+                  />
+                </div>
               </div>
             </article>
           ))}

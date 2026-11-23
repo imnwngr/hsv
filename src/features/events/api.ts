@@ -40,6 +40,21 @@ export async function getEvent(code: string) {
   if (error) throw error;
   return data ? normalizeEvent(data as ClubEvent) : null;
 }
+export async function setEventPublication(
+  id: string,
+  status: ClubEvent["status"],
+) {
+  const { data, error } = await db()
+    .from("events")
+    .update({ status })
+    .eq("id", id)
+    .select("id,status,updated_at")
+    .single();
+  if (error) throw error;
+  if (data?.id !== id || data.status !== status)
+    throw Error("Trạng thái chưa được lưu. Vui lòng thử lại.");
+  return data as Pick<ClubEvent, "id" | "status" | "updated_at">;
+}
 export async function listGuests() {
   let { data, error } = await db()
     .from("guests")
@@ -91,6 +106,25 @@ export async function saveEvent(
   guestIds: string[],
   existing?: ClubEvent,
 ) {
+  if (
+    event.attendance_config ||
+    event.default_invitation_id ||
+    existing?.attendance_config ||
+    existing?.default_invitation_id
+  ) {
+    const capability = await db().rpc("attendance_capabilities");
+    if (capability.error || capability.data?.version !== 1)
+      throw Error(
+        "Backend chưa hỗ trợ điểm danh và thiệp mặc định. Thay đổi chưa được lưu.",
+      );
+    if (
+      event.attendance_config?.duration_minutes !== undefined &&
+      capability.data?.duration_minutes !== true
+    )
+      throw Error(
+        "Máy chủ chưa hỗ trợ thời lượng điểm danh tùy chỉnh. Thay đổi chưa được lưu.",
+      );
+  }
   const capability = await db().rpc("hsv_v3_capabilities");
   if (capability.error || capability.data?.version !== 3)
     throw Error(
@@ -153,9 +187,11 @@ export async function saveEvent(
         "Database chưa hỗ trợ khoảng giờ và icon chương trình. Chưa lưu thay đổi; cần áp dụng bản SQL nâng cấp đã được review.",
       );
   }
+  const { default_invitation_alias: _resolvedAlias, ...editable } = event;
+  void _resolvedAlias;
   const { data, error } = await db().rpc("save_event", {
     p_event: {
-      ...event,
+      ...editable,
       event_type: event.event_type ?? "invitation",
       theme: themeSchema.parse(event.theme ?? DEFAULT_THEME),
       starts_at: event.starts_at || null,

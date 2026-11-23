@@ -33,7 +33,11 @@ export default function EventDetail() {
         <Link to="/">Về trang chủ</Link>
       </Empty>
     );
-  const canonical = eventPath(event.code, event.event_type);
+  const canonical = eventPath(
+    event.code,
+    event.event_type,
+    event.default_invitation_alias || undefined,
+  );
   if (location.pathname.replace(/\/$/, "") !== canonical)
     return (
       <Navigate replace to={canonical + location.search + location.hash} />

@@ -4,12 +4,14 @@ export function EventFilters({
   setMonth,
   setYear,
   years,
+  showReset = true,
 }: {
   month: string;
   year: string;
   setMonth: (s: string) => void;
   setYear: (s: string) => void;
   years: string[];
+  showReset?: boolean;
 }) {
   return (
     <div className="filters">
@@ -41,7 +43,7 @@ export function EventFilters({
           ))}
         </select>
       </label>
-      {(month || year) && (
+      {showReset && (month || year) && (
         <button
           type="button"
           className="secondary filter-reset"

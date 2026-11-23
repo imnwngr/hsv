@@ -26,7 +26,14 @@ import { Empty, ErrorState, Loading } from "../components/Feedback";
 import { GuestSelection } from "../features/guests/GuestSelection";
 import { InvitationManager } from "../features/invitations/InvitationManager";
 import { Confirm } from "../components/Confirm";
-import { Switch } from "../components/Switch";
+import { EditorNavigation } from "../components/EditorNavigation";
+import { AttendanceEditor } from "../features/attendance/AttendanceEditor";
+import {
+  defaultAttendance,
+  attendanceDate,
+  attendanceTime,
+  attendanceTimeOnEvent,
+} from "../features/attendance/model";
 import { RangePicker } from "../components/RangePicker";
 import { AgendaEditor } from "../components/AgendaEditor";
 import { ImageEditor } from "../components/ImageEditor";
@@ -107,6 +114,8 @@ function EventEditor({
         : (event?.maps_url ?? ""),
     agenda: event?.agenda ?? [],
     venue_image_path: event?.venue_image_path ?? null,
+    attendance_config: event?.attendance_config ?? null,
+    default_invitation_id: event?.default_invitation_id ?? null,
   };
   const form = useForm<EventInput>({
     resolver: zodResolver(eventSchema),
@@ -140,6 +149,42 @@ function EventEditor({
     key: K,
     value: FieldPathValue<EventInput, K>,
   ) => setValue(key, value, { shouldDirty: true, shouldValidate: true });
+  const changeEventTime = (key: "starts_at" | "ends_at", value: string) => {
+    const previous = form.getValues();
+    const next = { ...previous, [key]: value };
+    const durationMinutes = previous.attendance_config?.duration_minutes ?? 15;
+    change(key, value);
+    if (
+      !previous.attendance_config ||
+      !attendanceDate(
+        "round_one",
+        next.starts_at,
+        next.ends_at,
+        durationMinutes,
+      )
+    )
+      return;
+    const config = { ...previous.attendance_config };
+    for (const round of ["round_one", "round_two"] as const) {
+      if (
+        attendanceDate(
+          round,
+          previous.starts_at,
+          previous.ends_at,
+          durationMinutes,
+        ) !==
+        attendanceDate(round, next.starts_at, next.ends_at, durationMinutes)
+      )
+        config[round] = attendanceTimeOnEvent(
+          attendanceTime(config[round]),
+          round,
+          next.starts_at,
+          next.ends_at,
+          durationMinutes,
+        );
+    }
+    change("attendance_config", config);
+  };
   const field = (
     name: "title" | "code" | "venue_name" | "address" | "place_id" | "maps_url",
     label: string,
@@ -178,25 +223,7 @@ function EventEditor({
         Chuẩn bị nội dung, chương trình và danh sách khách mời. Mọi thay đổi chỉ
         được áp dụng khi lưu.
       </p>
-      <nav className="editor-nav" aria-label="Các phần của sự kiện">
-        {[
-          ["basics", "Thông tin"],
-          ["appearance", "Giao diện"],
-          ["time", "Thời gian"],
-          ["content", "Nội dung & nhạc"],
-          ["venue", "Địa điểm & ảnh"],
-          ["agenda", "Chương trình"],
-          ["guests", "Khách mời"],
-          ["publish", "Công bố & thiệp"],
-        ]
-          .filter(([id]) => !congratulation || !["time", "venue"].includes(id))
-          .map(([id, label], index) => (
-            <a key={id} href={`#editor-${id}`}>
-              <span aria-hidden="true">0{index + 1}</span>
-              {label}
-            </a>
-          ))}
-      </nav>
+      <EditorNavigation congratulation={congratulation} />
       <form
         noValidate
         onSubmitCapture={(e) => {
@@ -364,21 +391,6 @@ function EventEditor({
           type={watch("event_type")}
           onChange={(v) => change("theme", v)}
         />
-        {!congratulation && (
-          <fieldset id="editor-time">
-            <legend>Thời gian</legend>
-            <RangePicker
-              label="Thời gian sự kiện"
-              dateTime
-              start={watch("starts_at") ?? ""}
-              end={watch("ends_at") ?? ""}
-              onStart={(v) => change("starts_at", v)}
-              onEnd={(v) => change("ends_at", v)}
-              error={errors.starts_at?.message || errors.ends_at?.message}
-            />
-            <p className="footnote">Giờ Việt Nam (UTC+7), 00:00–23:59.</p>
-          </fieldset>
-        )}
         <fieldset id="editor-content">
           <legend>Nội dung & nhạc nền</legend>
           <RichQuoteEditor
@@ -434,6 +446,21 @@ function EventEditor({
             </span>
           )}
         </fieldset>
+        {!congratulation && (
+          <fieldset id="editor-time">
+            <legend>Thời gian</legend>
+            <RangePicker
+              label="Thời gian sự kiện"
+              dateTime
+              start={watch("starts_at") ?? ""}
+              end={watch("ends_at") ?? ""}
+              onStart={(v) => changeEventTime("starts_at", v)}
+              onEnd={(v) => changeEventTime("ends_at", v)}
+              error={errors.starts_at?.message || errors.ends_at?.message}
+            />
+            <p className="footnote">Giờ Việt Nam (UTC+7), 00:00–23:59.</p>
+          </fieldset>
+        )}
         {!congratulation && (
           <fieldset id="editor-venue">
             <legend>Địa điểm</legend>
@@ -515,22 +542,62 @@ function EventEditor({
           onChange={setSelected}
         />
         <fieldset id="editor-publish">
-          <legend>Công bố & thiệp</legend>
+          <legend>Thiệp hiển thị khi mở sự kiện</legend>
+          <label>
+            Người hoặc đơn vị nhận thiệp
+            <select
+              value={watch("default_invitation_id") ?? ""}
+              onChange={(e) =>
+                change("default_invitation_id", e.target.value || null)
+              }
+            >
+              <option value="">Hiển thị trang giới thiệu sự kiện</option>
+              {invitations
+                .filter((i) => selected.includes(i.guest_id))
+                .map((i) => (
+                  <option key={i.id} value={i.id}>
+                    {i.name}
+                  </option>
+                ))}
+            </select>
+          </label>
+          <p className="field-hint">
+            Thiệp này sẽ được mở từ danh sách sự kiện công khai. Chỉ chọn được
+            người hoặc đơn vị đã có thiệp được lưu trong sự kiện.
+          </p>
           <p className="field-hint">
             Bản nháp chỉ dành cho quản trị. Khi công bố, sự kiện và thiệp đã lưu
             sẽ hiển thị qua liên kết tương ứng.
           </p>
-          <Switch
-            checked={watch("status") === "published"}
-            label={
-              watch("status") === "published"
-                ? "Đã công khai (lưu để áp dụng)"
-                : "Bản nháp / Không công khai"
-            }
-            onChange={(v) => change("status", v ? "published" : "draft")}
-          />
+          <p className={`status ${event?.status ?? "draft"}`}>
+            {event?.status === "published" ? "Đã công khai" : "Chưa công khai"}
+          </p>
+          <p className="field-hint">
+            Đổi trạng thái công khai tại danh sách sự kiện. Lưu nội dung không
+            tự công khai sự kiện.
+          </p>
           {event && <a href="#invitation-links">Đến danh sách thiệp</a>}
         </fieldset>
+        {!congratulation && (
+          <AttendanceEditor
+            value={watch("attendance_config")}
+            event={watch()}
+            saved={event}
+            onChange={(v) =>
+              change(
+                "attendance_config",
+                !event?.attendance_config &&
+                  JSON.stringify(v) ===
+                    JSON.stringify(
+                      defaultAttendance(watch("starts_at"), watch("ends_at")),
+                    )
+                  ? null
+                  : v,
+              )
+            }
+            error={errors.attendance_config?.message}
+          />
+        )}
         {dirty && (
           <div className="save-bar dirty-save-bar">
             <span>Có thay đổi chưa lưu</span>
@@ -560,6 +627,12 @@ function EventEditor({
           eventId={event.id}
           type={event.event_type}
         />
+      )}
+      {!event && (
+        <section id="invitation-links">
+          <h2>Liên kết thiệp</h2>
+          <p>Lưu sự kiện và danh sách khách mời để tạo liên kết.</p>
+        </section>
       )}
       {blocker.state === "blocked" && (
         <Confirm

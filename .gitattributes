@@ -1,0 +1,2 @@
+supabase/releases/** text eol=lf
+supabase/migrations/*_hsv4_*.sql text eol=lf

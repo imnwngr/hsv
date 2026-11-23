@@ -1,0 +1,200 @@
+.attendance-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+  margin-block: 1rem;
+}
+.attendance-fields > * {
+  min-width: 0;
+}
+.attendance-fields input {
+  min-width: 0;
+  width: 100%;
+}
+.attendance-fields .segmented-time input {
+  width: 2.6ch;
+}
+.attendance-fields .field-label {
+  margin: 0 0 0.5rem;
+}
+.pin-picker {
+  margin-top: 1.5rem;
+}
+.attendance-map {
+  position: relative;
+  height: 320px;
+  overflow: hidden;
+  isolation: isolate;
+  cursor: crosshair;
+  background: var(--surface-muted);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-control);
+}
+.attendance-map img {
+  position: absolute;
+  width: 256px;
+  height: 256px;
+  max-width: none;
+  pointer-events: none;
+}
+.pin-radius {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  border: 2px solid var(--brand);
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--brand) 16%, transparent);
+  pointer-events: none;
+}
+.map-pin {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  background: var(--brand);
+  color: var(--surface);
+  border: 2px solid var(--surface);
+  border-radius: 50%;
+  font-size: 1.5rem;
+  line-height: 1;
+  pointer-events: none;
+}
+.pin-search-results {
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 0.5rem;
+}
+.pin-search-results button {
+  width: 100%;
+  text-align: left;
+}
+.attendance-dialog {
+  width: min(100% - 24px, 520px);
+  max-height: calc(100dvh - 24px);
+  padding: 1.25rem 1.25rem max(1.25rem, env(safe-area-inset-bottom));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  text-align: left;
+}
+.attendance-dialog form {
+  display: grid;
+  gap: 1rem;
+}
+.attendance-dialog label {
+  display: grid;
+  gap: 0.5rem;
+}
+.attendance-dialog input {
+  font-size: 1rem;
+  min-width: 0;
+  width: 100%;
+}
+.attendance-dialog h2 {
+  font-size: 1.5rem;
+  margin-top: 0;
+}
+.attendance-dialog .dialog-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: start;
+}
+.attendance-dialog .dialog-heading button {
+  flex-shrink: 0;
+}
+.attendance-trigger {
+  position: fixed;
+  bottom: max(1rem, env(safe-area-inset-bottom));
+  left: 1rem;
+  z-index: 45;
+  max-width: calc(100% - 6rem);
+}
+.attendance-camera {
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
+  border-radius: var(--radius-control);
+  background: var(--ink);
+}
+.attendance-result {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 0.75rem 1rem;
+}
+.attendance-result dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.attendance-result-row {
+  display: contents;
+}
+.attendance-display {
+  text-align: center;
+  padding-block: 1rem;
+  max-width: 1200px;
+  margin-inline: auto;
+}
+.attendance-display h1 {
+  font-size: clamp(1.5rem, 3vw, 2.5rem);
+  margin: 0.5rem 0;
+}
+.attendance-display p {
+  margin-block: 0.5rem;
+}
+.attendance-display svg {
+  display: block;
+  width: min(100%, max(180px, calc(100svh - 340px)));
+  height: auto;
+  margin: 0.5rem auto;
+  background: var(--qr-paper);
+  color: var(--qr-ink);
+}
+.attendance-display .round-label {
+  font-size: 2rem;
+  color: var(--brand);
+}
+.attendance-table-wrap {
+  overflow-x: auto;
+}
+.attendance-table {
+  width: 100%;
+  min-width: 720px;
+  border-collapse: collapse;
+}
+.attendance-table :is(th, td) {
+  text-align: left;
+  padding: 0.75rem;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+.attendance-table th {
+  font-weight: 600;
+}
+.attendance-table details {
+  max-width: 26rem;
+}
+@media (max-width: 600px) {
+  .attendance-fields {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .attendance-map {
+    height: 280px;
+  }
+  .attendance-dialog {
+    padding-inline: 1rem;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .attendance-dialog *,
+  .attendance-trigger {
+    animation: none;
+    transition: none;
+    scroll-behavior: auto;
+  }
+}

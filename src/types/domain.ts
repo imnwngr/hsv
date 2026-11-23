@@ -12,6 +12,11 @@ export interface AgendaItem {
   highlight: boolean;
 }
 export interface ClubEvent {
+  duplicated_from_id?: string | null;
+  attendance_config?:
+    import("../features/attendance/model").AttendanceConfig | null;
+  default_invitation_id?: string | null;
+  default_invitation_alias?: string | null;
   event_type?: EventType;
   theme?: EventTheme;
   id: string;

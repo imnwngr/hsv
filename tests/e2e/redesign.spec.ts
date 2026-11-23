@@ -303,7 +303,9 @@ test("redesign loading, error and empty states", async ({ page }, info) => {
   test.setTimeout(45000);
   await designBackend(page, { empty: true });
   await page.goto("/hsv/");
-  await expect(page.getByText("Chưa có nội dung")).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Chưa có sự kiện công khai" }),
+  ).toBeVisible();
   await capture(page, `empty-${info.project.name}`);
   let release!: () => void;
   const waiting = new Promise<void>((resolve) => {

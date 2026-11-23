@@ -1,0 +1,106 @@
+{
+  "tables": [
+    {
+      "acl": "{postgres=arwdDxtm/postgres,service_role=arwdDxtm/postgres,authenticated=r/postgres}",
+      "rls": true,
+      "name": "admin_users"
+    },
+    {
+      "acl": "{postgres=arwdDxtm/postgres}",
+      "rls": true,
+      "name": "editor_add_operations"
+    },
+    {
+      "acl": "{postgres=arwdDxtm/postgres,service_role=arwdDxtm/postgres}",
+      "rls": true,
+      "name": "editor_users"
+    }
+  ],
+  "columns": [
+    {
+      "type": "uuid",
+      "table": "admin_users",
+      "column": "user_id",
+      "default": null
+    },
+    {
+      "type": "timestamp with time zone",
+      "table": "admin_users",
+      "column": "created_at",
+      "default": "now()"
+    },
+    {
+      "type": "timestamp with time zone",
+      "table": "admin_users",
+      "column": "updated_at",
+      "default": "now()"
+    },
+    {
+      "type": "text",
+      "table": "editor_add_operations",
+      "column": "email",
+      "default": null
+    },
+    {
+      "type": "uuid",
+      "table": "editor_add_operations",
+      "column": "actor",
+      "default": null
+    },
+    {
+      "type": "uuid",
+      "table": "editor_add_operations",
+      "column": "request_id",
+      "default": null
+    },
+    {
+      "type": "uuid",
+      "table": "editor_add_operations",
+      "column": "lease",
+      "default": null
+    },
+    {
+      "type": "timestamp with time zone",
+      "table": "editor_add_operations",
+      "column": "lease_until",
+      "default": null
+    },
+    {
+      "type": "text",
+      "table": "editor_add_operations",
+      "column": "state",
+      "default": null
+    },
+    {
+      "type": "uuid",
+      "table": "editor_add_operations",
+      "column": "target",
+      "default": null
+    },
+    {
+      "type": "timestamp with time zone",
+      "table": "editor_add_operations",
+      "column": "updated_at",
+      "default": "now()"
+    },
+    {
+      "type": "uuid",
+      "table": "editor_users",
+      "column": "user_id",
+      "default": null
+    },
+    {
+      "type": "timestamp with time zone",
+      "table": "editor_users",
+      "column": "created_at",
+      "default": "now()"
+    }
+  ],
+  "editor_hash": "815a92a13d541ece29c3ca873c3796c2",
+  "role_counts": {
+    "admin": 2,
+    "editor": 2
+  },
+  "already_applied": false,
+  "membership_hash": "b1456d636c68ce2fc5c440d503cc9460"
+}

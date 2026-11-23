@@ -50,7 +50,7 @@ Nhạc khởi tạo 25%, thử autoplay theo chính sách trình duyệt, tiếp
 
 ## Tài khoản và khả năng tiếp cận
 
-Admin nhập email, hệ thống tự phân biệt tài khoản hiện có và email mới; quyền mặc định Editor. Không có select invite/grant. Nút disabled trong request, chống double-click, thông báo kết quả ngay trong dialog; Escape/focus restoration khi không busy. Các trạng thái đã cấp quyền, chờ nhận lời mời, chưa xác nhận email, đang xử lý, lỗi một phần và cần khôi phục khác nhau. Có danh sách yêu cầu cần kiểm tra. Không khẳng định email đã đến hộp thư.
+Admin nhập email và chọn Admin/Editor, hệ thống tự phân biệt tài khoản hiện có và email mới; quyền mặc định Editor. Không có select invite/grant. Chọn Admin có giải thích quyền quản lý tài khoản; mỗi hàng cho nâng/hạ hoặc thu hồi với xác nhận nêu rõ tác động. Editor chỉ đọc danh sách, kể cả hàng của chính mình. Nút disabled trong request, chống double-click, thông báo kết quả ngay trong dialog; Escape/focus restoration khi không busy. Các trạng thái đã cấp quyền, chờ nhận lời mời, chưa xác nhận email, đang xử lý, lỗi một phần và cần khôi phục khác nhau. Có danh sách yêu cầu cần kiểm tra. Không khẳng định email đã đến hộp thư.
 
 Session và quyền Admin kiểm lại ở server/RPC; không dựa vào ẩn nút. Retry không tự gửi lại email; revoke vô hiệu hóa worker cũ, retry của yêu cầu vừa bị thu hồi không tự cấp lại. Chi tiết kỹ thuật và giới hạn nằm trong [hướng dẫn vận hành](docs/OPERATIONS.md), không đưa vào luồng thao tác thông thường.
 

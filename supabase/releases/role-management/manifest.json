@@ -1,0 +1,28 @@
+{
+  "project": "trdofhdspbkwgernwybp",
+  "release": "account-role-management",
+  "status": "prepared",
+  "sql": {
+    "file": "01-account-roles.sql",
+    "sha256": "bf965150257aae295cb1271bc6905f1120e90650e2aa214efc5cb0fa96c83d36",
+    "status": "not_applied"
+  },
+  "edge": {
+    "name": "manage-editors",
+    "previousVersion": 7,
+    "status": "not_deployed"
+  },
+  "pages": {
+    "status": "pending"
+  },
+  "snapshots": {
+    "beforeFunctions": "before.json",
+    "beforeMetadata": "before-metadata.json",
+    "beforeEdge": "before-edge.json",
+    "scope": "SQL definitions, privileges and Edge source only; no Auth users, credentials or application data"
+  },
+  "verification": {
+    "local": "190 unit/SQL/Edge, typecheck, lint and build passed; browser mocks at 320/390/768/1440",
+    "nativeConcurrency": "pending CI disposable PostgreSQL"
+  }
+}

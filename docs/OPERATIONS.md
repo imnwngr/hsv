@@ -145,11 +145,17 @@ Trong audit backend trước rename, cả callback `/bookclub/` và `/hsv/` đã
 
 Edge ở chế độ `live` chỉ chấp nhận origin Pages. Nối Vite local vào project production không làm luồng thêm Editor chạy được từ localhost: request sẽ bị CORS/origin từ chối. Kiểm thử luồng này bằng sandbox tài khoản có `HSV_LOCAL_ORIGIN` trỏ tới cổng frontend local; không nới CORS production để thử giao diện.
 
-### Thêm Editor và xử lý lỗi một phần
+### Quản lý Admin/Editor và xử lý lỗi một phần
 
-Admin gửi action `add`, email, role `editor` và `request_id`; giao diện không yêu cầu chọn invite/grant. Server đọc capability gửi lời mời và kiểm tra quyền tại mỗi thao tác. Action `grant` cũ giữ tương thích với tài khoản có sẵn; action `invite` cũ yêu cầu nâng client.
+Admin gửi action `add`, email, role `admin` hoặc `editor` và `request_id`; giao diện mặc định Editor và không yêu cầu chọn invite/grant. Tài khoản mới được mời với vai trò đã chọn; tài khoản có sẵn được cấp quyền trực tiếp. Nếu đã có vai trò khác, dùng thao tác nâng/hạ trong danh sách thay vì ghi đè qua form thêm. Server đọc capability gửi lời mời và kiểm tra quyền tại mỗi thao tác. Action `grant` cũ giữ tương thích với tài khoản có sẵn; action `invite` cũ yêu cầu nâng client.
 
-`begin_editor_add` và `finish_editor_add` chỉ service role được EXECUTE; client không có quyền đọc/ghi ledger trực tiếp. `editor_add_recovery` kiểm tra Admin ở server. Metadata ngày 20/11 xác nhận authenticated không đọc được ledger hoặc EXECUTE begin. Revoke vô hiệu hóa thao tác đang chờ; retry yêu cầu đã revoke không tự cấp lại.
+`set_account_role`, `begin_account_add` và `finish_account_add` chỉ service role được EXECUTE; Edge xác minh JWT, đọc quyền Admin từ database rồi truyền actor, không nhận actor do frontend cung cấp. Editor chỉ đọc danh sách, không thêm, nâng, hạ hoặc thu hồi bất kỳ tài khoản nào, kể cả chính mình. Backend giữ ít nhất một Admin không bị cấm/ẩn danh; các thao tác dùng chung advisory lock và khóa bảng để hai Admin tự hạ đồng thời không làm mất Admin cuối cùng. Đổi vai trò xóa membership cũ trong cùng transaction, kiểm `expected_role` để tránh ghi đè từ trang cũ và làm mất hiệu lực yêu cầu cấp quyền đang chờ.
+
+Ledger `editor_add_operations` bổ sung `requested_role` (mặc định `editor` cho dữ liệu cũ). Retry/khôi phục giữ vai trò đã chọn, không tự gửi lại email hoặc phục hồi quyền đã thu hồi/hạ. `account_add_recovery` kiểm tra Admin ở server; client không đọc/ghi ledger trực tiếp. Các RPC Editor cũ được giữ tương thích và dùng cùng khóa giao dịch.
+
+Bản SQL trước/sau và trạng thái áp dụng nằm tại [release role-management](../supabase/releases/role-management/manifest.json). `before.json` giữ định nghĩa/quyền function; `before-metadata.json` giữ cột, RLS, ACL và checksum membership, không chứa tài khoản hay secrets. Đây là snapshot cấu hình, không phải backup dữ liệu. Không chạy snapshot lên production hoặc chạy lại SQL đã áp dụng; rollback phải là migration có chủ đích, giữ membership/ledger đã phát sinh.
+
+Kiểm tra local ngày 23/11/2026: 190 unit/SQL/Edge đạt, typecheck/lint/build đạt. Browser mock bao phủ nâng/hạ, thêm Admin, lỗi/thử lại/khôi phục, tự hạ và Editor chỉ đọc; ảnh ở `.local/account-roles/` tại 320/390/768/1440 px, có axe và Escape/focus. CI `native-accounts` kiểm Auth/Edge/PostgreSQL riêng, lời mời Admin và hai session tự hạ đồng thời; kết quả rollout được ghi trong manifest. Không thay quyền của tài khoản production để thử, không gửi email thử tới người thật.
 
 Auth invite và SQL cấp quyền không có transaction chung. Nếu email đã gửi nhưng grant thất bại, dùng khôi phục để cấp quyền cho tài khoản đã tạo; không gửi lại email. Nếu response mất và chưa xác định Auth đã tạo user hay chưa, giữ trạng thái chưa xác định, đối chiếu logs trước khi gửi mới. Không báo hoàn tất chỉ vì một bước đã thành công.
 

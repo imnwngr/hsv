@@ -6,6 +6,7 @@ Mỗi lần nâng cấp có một snapshot trước thay đổi và một bộ S
 |---|---|---|
 | [hsv3-before-hsv4](hsv3-before-hsv4/) | Định nghĩa lấy từ backend trước nâng cấp ngày 23/11/2026 | Đối chiếu và phục hồi schema ứng dụng vào môi trường trống tương thích |
 | [hsv4](hsv4/) | Ba bước nâng cấp, preflight/postflight và manifest | Chỉ chạy bước còn thiếu theo thứ tự trong manifest |
+| [role-management](role-management/) | Snapshot quyền trước nâng cấp và SQL quản lý Admin/Editor | Xem `manifest.json` để biết trạng thái áp dụng SQL/Edge/Pages; không chạy lại migration |
 
 Trạng thái áp dụng và mã migration thực tế nằm trong [manifest hsv4](hsv4/manifest.json). Không suy ra trạng thái database từ tên branch, việc pull hoặc sự tồn tại của file SQL. Không chạy cả thư mục `supabase/migrations`: lịch sử cũ có tên file khác version trên server và một số schema đã được thiết lập trước migration ledger hiện tại.
 

@@ -1,8 +1,8 @@
-# Vận hành HSV CTUT 3.0.0
+# Vận hành HSV CTUT 4.0.0
 
 Hướng dẫn này mô tả source `main`, đã nhận `hsv4` qua PR #2 tại `0d17ad0`; trạng thái SQL mới nhất được xác minh ngày **23/11/2026**. Nhánh `hsv4` đã xóa sau khi kiểm tra toàn bộ lịch sử nằm trong `main`. Không sao chép seed hay DDL v1 vào tài liệu; các file SQL đã áp dụng không phải danh sách lệnh cần chạy lại khi pull source.
 
-Release lịch sử [v3.0.0](https://github.com/imnwngr/hsv/releases/tag/v3.0.0) đã được tạo tại merge commit `5d663574be5a2357c2b161385d1b4fe0d430a75f` của PR #1, không phải HEAD hiện tại. Release này không chứa HSV4, không chạy SQL hoặc deploy lại v3. Chưa tạo release v4.0.0.
+Release lịch sử [v3.0.0](https://github.com/imnwngr/hsv/releases/tag/v3.0.0) ghim merge commit `5d663574be5a2357c2b161385d1b4fe0d430a75f` của PR #1, không chứa HSV4. [Release 4.0.0](releases/v4.0.0.md) ghi nhận bản sau điểm danh, nhân bản, hoàn thiện quản trị và phân quyền Admin/Editor; README cùng metadata package đã cập nhật trước khi gắn tag. Tạo release không chạy lại SQL.
 
 ## Quản lý vai trò — triển khai ngày 23/11/2026
 

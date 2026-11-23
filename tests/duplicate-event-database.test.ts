@@ -35,7 +35,9 @@ beforeAll(async () => {
   await pg.exec(
     sqlFile("supabase/migrations/202611200001_event_types_theme.sql"),
   );
-  await pg.exec(sqlFile("supabase/proposals/duplicate-event.sql"));
+  await pg.exec(sqlFile("supabase/releases/hsv4/01-attendance.sql"));
+  await pg.exec(sqlFile("supabase/releases/hsv4/02-attendance-duration.sql"));
+  await pg.exec(sqlFile("supabase/releases/hsv4/03-duplicate-event.sql"));
   const music = `${adminId}/${randomUUID()}/fixture.mp3`;
   const venue = `${adminId}/${randomUUID()}.png`;
   await pg.query(
@@ -200,7 +202,6 @@ it("checks server permissions for anonymous, unprivileged and revoked accounts, 
 });
 
 it("copies attendance configuration and remaps the default card without copying attendance results or QR tokens", async () => {
-  await pg.exec(sqlFile("supabase/proposals/attendance.sql"));
   await pg.query(
     "update events e set default_invitation_id=(select id from event_guests where event_id=e.id limit 1),attendance_config=jsonb_build_object('enabled',true,'radius_m',100,'qr_seconds',5,'latitude',10,'longitude',105,'pin_confirmed',true,'pin_source',attendance_private.location_source(e)::text,'round_one',starts_at+interval '15 minutes','round_two',ends_at-interval '15 minutes') where id=$1",
     [sourceId],

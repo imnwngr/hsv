@@ -38,10 +38,30 @@ const attendance = await globalThis.fetch(
     signal: globalThis.AbortSignal.timeout(15000),
   },
 );
-if (!attendance.ok || (await attendance.json()).version !== 1)
+const attendanceCapabilities = attendance.ok ? await attendance.json() : null;
+if (
+  attendanceCapabilities?.version !== 1 ||
+  attendanceCapabilities?.duration_minutes !== true
+)
   throw Error(
     "Attendance backend is not approved/applied. Do not deploy this frontend until the reviewed schema is available.",
   );
 console.log(
-  "PASS attendance schema capability v1. This does not verify live camera/GPS or the optional Maps link resolver.",
+  "PASS attendance schema capability v1 with configurable duration. This does not verify live camera/GPS or the optional Maps link resolver.",
 );
+const release = await globalThis.fetch(
+  new URL("/rest/v1/rpc/hsv4_capabilities", endpoint),
+  {
+    method: "POST",
+    headers: { apikey: key, "Content-Type": "application/json" },
+    body: "{}",
+    signal: globalThis.AbortSignal.timeout(15000),
+  },
+);
+const releaseCapabilities = release.ok ? await release.json() : null;
+if (
+  releaseCapabilities?.version !== 4 ||
+  releaseCapabilities?.duplicate_event !== true
+)
+  throw Error("HSV4 event duplication migration is not available.");
+console.log("PASS HSV4 release capability includes event duplication.");

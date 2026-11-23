@@ -134,9 +134,9 @@ try {
       "utf8",
     ),
   );
-  query(readFileSync("supabase/proposals/attendance.sql", "utf8"));
-  query(readFileSync("supabase/proposals/attendance-duration.sql", "utf8"));
-  query(readFileSync("supabase/proposals/duplicate-event.sql", "utf8"));
+  query(readFileSync("supabase/releases/hsv4/01-attendance.sql", "utf8"));
+  query(readFileSync("supabase/releases/hsv4/02-attendance-duration.sql", "utf8"));
+  query(readFileSync("supabase/releases/hsv4/03-duplicate-event.sql", "utf8"));
   query(
     `insert into guests(id,name,kind,primary_alias) values('${group}','Nhóm kiểm thử','group','nhom-test')`,
   );

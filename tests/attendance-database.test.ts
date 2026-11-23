@@ -19,8 +19,8 @@ beforeAll(async () => {
   await pg.exec(
     sqlFile("supabase/migrations/202611200001_event_types_theme.sql"),
   );
-  await pg.exec(sqlFile("supabase/proposals/attendance.sql"));
-  await pg.exec(sqlFile("supabase/proposals/attendance-duration.sql"));
+  await pg.exec(sqlFile("supabase/releases/hsv4/01-attendance.sql"));
+  await pg.exec(sqlFile("supabase/releases/hsv4/02-attendance-duration.sql"));
   await pg.query(
     "insert into guests(id,name,kind,primary_alias) values($1,'Nhóm kiểm thử','group','nhom-test')",
     [group],

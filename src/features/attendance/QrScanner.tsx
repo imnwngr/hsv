@@ -5,7 +5,7 @@ export default function QrScanner({
   onError,
 }: {
   onToken: (token: string) => void;
-  onError: (message: string) => void;
+  onError: (message: string, permissionDenied?: boolean) => void;
 }) {
   const video = useRef<HTMLVideoElement>(null);
   const callback = useRef(onToken),
@@ -13,14 +13,18 @@ export default function QrScanner({
   callback.current = onToken;
   failure.current = onError;
   const [ready, setReady] = useState(false);
+  const [needsTap, setNeedsTap] = useState(false);
+  const resumeVideo = useRef<(() => void) | null>(null);
   useEffect(() => {
     let stopped = false,
       stream: MediaStream | null = null,
       timer = 0;
     const stop = () => {
       stopped = true;
+      resumeVideo.current = null;
       clearTimeout(timer);
       stream?.getTracks().forEach((t) => t.stop());
+      stream = null;
       if (video.current) video.current.srcObject = null;
     };
     const hide = () => {
@@ -51,9 +55,6 @@ export default function QrScanner({
           return;
         }
         element.srcObject = stream;
-        await element.play();
-        if (stopped) return;
-        setReady(true);
         const canvas = document.createElement("canvas"),
           context = canvas.getContext("2d", { willReadFrequently: true });
         if (!context) throw Error("canvas");
@@ -75,14 +76,51 @@ export default function QrScanner({
           }
           timer = window.setTimeout(detect, 180);
         };
-        detect();
+        let playing = false;
+        const play = async () => {
+          if (stopped || playing) return;
+          playing = true;
+          try {
+            await element.play();
+            if (stopped) return;
+            setNeedsTap(false);
+            setReady(true);
+            resumeVideo.current = null;
+            detect();
+          } catch (error) {
+            if (stopped) return;
+            if (
+              error instanceof DOMException &&
+              error.name === "NotAllowedError"
+            ) {
+              setNeedsTap(true);
+            } else {
+              stop();
+              failure.current(
+                "Không phát được hình ảnh camera. Đóng ứng dụng đang dùng camera rồi thử lại.",
+              );
+            }
+          } finally {
+            playing = false;
+          }
+        };
+        resumeVideo.current = () => void play();
+        await play();
       } catch (error) {
         if (stopped) return;
         stop();
+        const name = error instanceof DOMException ? error.name : "";
+        const permissionDenied =
+          name === "NotAllowedError" || name === "SecurityError";
         failure.current(
-          error instanceof DOMException && error.name === "NotAllowedError"
-            ? "Cho phép truy cập camera trong cài đặt trình duyệt rồi thử lại."
-            : "Không mở được camera. Kiểm tra camera, kết nối HTTPS và thử lại.",
+          permissionDenied
+            ? "Trình duyệt hoặc thiết bị đang chặn camera. Kiểm tra quyền website và cài đặt thiết bị theo hướng dẫn bên dưới."
+            : name === "NotFoundError"
+              ? "Không tìm thấy camera. Mở thiệp trên thiết bị có camera rồi thử lại."
+              : name === "NotReadableError" || name === "AbortError"
+                ? "Camera đang bận hoặc không khởi động được. Đóng ứng dụng đang dùng camera rồi thử lại."
+                : "Không mở được camera. Kiểm tra camera, kết nối HTTPS và thử lại.",
+          permissionDenied,
         );
       }
     };
@@ -98,8 +136,19 @@ export default function QrScanner({
       <p role="status">
         {ready
           ? "Đưa QR đang trình chiếu vào giữa khung hình, giữ máy ổn định."
-          : "Đang mở camera…"}
+          : needsTap
+            ? "Camera đã được cho phép. Chạm nút bên dưới để bắt đầu hiển thị video."
+            : "Đang mở camera…"}
       </p>
+      {needsTap && (
+        <button
+          type="button"
+          className="attendance-resume-camera"
+          onClick={() => resumeVideo.current?.()}
+        >
+          Bật video camera
+        </button>
+      )}
       <video
         ref={video}
         className="attendance-camera"

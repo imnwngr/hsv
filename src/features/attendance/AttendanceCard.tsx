@@ -52,7 +52,9 @@ export default function AttendanceCard({
   const [name, setName] = useState(""),
     [student, setStudent] = useState("");
   const [error, setError] = useState("");
-  const [locationHelp, setLocationHelp] = useState(false);
+  const [permissionHelp, setPermissionHelp] = useState<
+    "location" | "camera" | null
+  >(null);
   const [fix, setFix] = useState<PositionFix | null>(null);
   const [recordedRound, setRecordedRound] = useState<1 | 2 | null>(null);
   const [editingBusy, setEditingBusy] = useState(false);
@@ -186,7 +188,7 @@ export default function AttendanceCard({
     setOpen(false);
     setFix(null);
     setError("");
-    setLocationHelp(false);
+    setPermissionHelp(null);
     setPhase("notice");
     request.current = false;
     dialog.current?.close();
@@ -226,7 +228,7 @@ export default function AttendanceCard({
     setName(parsed.data.full_name);
     setStudent(parsed.data.student_id);
     setError("");
-    setLocationHelp(false);
+    setPermissionHelp(null);
     setFix(null);
     setPhase("locating");
     try {
@@ -279,7 +281,7 @@ export default function AttendanceCard({
         cause && typeof cause === "object" && "code" in cause
           ? cause.code
           : null;
-      setLocationHelp(code === 1);
+      setPermissionHelp(code === 1 ? "location" : null);
       setError(
         code === 1
           ? "Trình duyệt hoặc thiết bị đang chặn vị trí. Nếu đã cho phép trên website, kiểm tra cả quyền định vị của điện thoại theo hướng dẫn bên dưới."
@@ -540,9 +542,10 @@ export default function AttendanceCard({
           <Suspense fallback={<p role="status">Đang tải phần quét QR…</p>}>
             <QrScanner
               onToken={(token) => void submit(token)}
-              onError={(message) => {
+              onError={(message, permissionDenied) => {
                 setFix(null);
                 setError(message);
+                setPermissionHelp(permissionDenied ? "camera" : null);
                 setPhase("prepare");
               }}
             />
@@ -593,8 +596,11 @@ export default function AttendanceCard({
             {error}
           </p>
         )}
-        {error && locationHelp && phase === "prepare" && (
-          <details className="attendance-location-help" open>
+        {error && permissionHelp === "location" && phase === "prepare" && (
+          <details
+            className="attendance-permission-help attendance-location-help"
+            open
+          >
             <summary>Đã cho phép vị trí nhưng vẫn bị chặn?</summary>
             <ol>
               <li>
@@ -621,6 +627,36 @@ export default function AttendanceCard({
             <p className="field-hint">
               Quyền camera không thay thế quyền vị trí. Không cần xóa dữ liệu
               trình duyệt; dữ liệu này giữ liên kết điểm danh của bạn.
+            </p>
+          </details>
+        )}
+        {error && permissionHelp === "camera" && phase === "prepare" && (
+          <details
+            className="attendance-permission-help attendance-camera-help"
+            open
+          >
+            <summary>Đã cho phép camera nhưng vẫn bị chặn?</summary>
+            <ol>
+              <li>
+                Trong Safari: mở menu trang →{" "}
+                <strong>Cài đặt trang web → Camera → Cho phép</strong>. Nếu mở
+                thiệp trong ứng dụng khác, mở đường dẫn trực tiếp bằng Safari.
+              </li>
+              <li>
+                Trên iPhone: kiểm tra{" "}
+                <strong>Cài đặt → Ứng dụng → Safari → Camera</strong> (iOS cũ:{" "}
+                <strong>Cài đặt → Safari</strong>). Kiểm tra cả giới hạn Camera
+                trong <strong>Thời gian sử dụng</strong> nếu đang bật.
+              </li>
+              <li>
+                Quay lại thiệp và bấm <strong>Lấy vị trí và quét QR</strong>.
+                Với trình duyệt khác, kiểm tra cả quyền camera trong cài đặt
+                thiết bị.
+              </li>
+            </ol>
+            <p className="field-hint">
+              Không cần cấp quyền micro hoặc xóa dữ liệu trình duyệt. Họ tên,
+              MSSV và liên kết điểm danh được giữ để thử lại.
             </p>
           </details>
         )}

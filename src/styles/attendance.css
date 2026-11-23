@@ -135,21 +135,21 @@
 .attendance-dialog .dialog-heading button {
   flex-shrink: 0;
 }
-.attendance-location-help summary {
+.attendance-permission-help summary {
   cursor: pointer;
   min-height: 44px;
   padding-block: 0.625rem;
   font-weight: 600;
 }
-.attendance-location-help summary:focus-visible {
+.attendance-permission-help summary:focus-visible {
   outline: 3px solid var(--brand);
   outline-offset: 3px;
 }
-.attendance-location-help ol {
+.attendance-permission-help ol {
   list-style: decimal;
   padding-inline-start: 1.25rem;
 }
-.attendance-location-help li + li {
+.attendance-permission-help li + li {
   margin-block-start: 0.75rem;
 }
 .attendance-trigger {
@@ -158,6 +158,9 @@
   left: 1rem;
   z-index: 45;
   max-width: calc(100% - 6rem);
+}
+.attendance-resume-camera {
+  margin-block-end: 0.75rem;
 }
 .attendance-camera {
   width: 100%;

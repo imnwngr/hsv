@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import type { AttendanceConfig, LocationSource } from "./model";
 import { locationSource } from "./model";
 import { allowedMapsUrl, coordinatesFromMaps } from "./mapLinks";
+import { parsePlusCode, pointFromPlusCode } from "./plusCode";
 import { db } from "../../lib/supabase";
 
 const tileSize = 256;
@@ -34,6 +35,8 @@ export default function PinPicker({
   const [zoom, setZoom] = useState(17);
   const [message, setMessage] = useState("");
   const [search, setSearch] = useState(source.venue_name || source.address);
+  const [plusCode, setPlusCode] = useState("");
+  const [codeError, setCodeError] = useState("");
   const [busy, setBusy] = useState(false);
   const lastSearch = useRef(-Infinity);
   const [results, setResults] = useState<
@@ -115,6 +118,71 @@ export default function PinPicker({
     )
       onChange({ ...value, latitude, longitude, pin_confirmed: false });
   };
+  const applyPlusCode = async () => {
+    if (busy) return;
+    setCodeError("");
+    const parsed = parsePlusCode(plusCode);
+    if (!parsed) {
+      setCodeError(
+        "Plus Code không hợp lệ. Sao chép cả mã có dấu + từ Google Maps.",
+      );
+      return;
+    }
+    setBusy(true);
+    try {
+      let reference = pin ?? undefined;
+      if (parsed.short && parsed.locality) {
+        if (performance.now() - lastSearch.current < 1100)
+          throw Error("Chờ một giây rồi thử lại.");
+        lastSearch.current = performance.now();
+        const response = await fetch(
+          `https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&q=${encodeURIComponent(parsed.locality)}`,
+          {
+            referrerPolicy: "strict-origin-when-cross-origin",
+            signal: AbortSignal.timeout(10000),
+          },
+        );
+        if (!response.ok)
+          throw Error(
+            "Không tìm được địa phương. Dùng Plus Code đầy đủ hoặc thử lại khi có mạng.",
+          );
+        const places = await response.json();
+        if (
+          !places[0] ||
+          !Number.isFinite(Number(places[0].lat)) ||
+          !Number.isFinite(Number(places[0].lon))
+        )
+          throw Error(
+            "Không tìm thấy địa phương đi kèm mã. Dùng Plus Code đầy đủ hoặc kiểm tra lại tên địa phương.",
+          );
+        reference = {
+          latitude: Number(places[0].lat),
+          longitude: Number(places[0].lon),
+        };
+      }
+      const next = pointFromPlusCode(parsed.code, reference);
+      if (!next)
+        throw Error(
+          "Mã rút gọn cần tên địa phương đi kèm hoặc một ghim tham chiếu. Bạn cũng có thể dùng Plus Code đầy đủ.",
+        );
+      if (Math.abs(next.latitude) > 85)
+        throw Error("Vị trí này nằm ngoài phạm vi bản đồ điểm danh.");
+      move(next.latitude, next.longitude);
+      setMessage(
+        "Đã đặt ghim gợi ý từ Plus Code. Kiểm tra bản đồ rồi xác nhận ghim.",
+      );
+    } catch (error) {
+      setCodeError(
+        error instanceof Error &&
+          error.name !== "TimeoutError" &&
+          error.name !== "TypeError"
+          ? error.message
+          : "Không tìm được địa phương lúc này. Dùng Plus Code đầy đủ hoặc thử lại khi có mạng.",
+      );
+    } finally {
+      setBusy(false);
+    }
+  };
   return (
     <div className="pin-picker">
       {!pin && (
@@ -128,6 +196,45 @@ export default function PinPicker({
           {value.pin_confirmed && value.pin_source === locationSource(source)
             ? "Ghim đã được xác nhận."
             : "Ghim gợi ý chưa được xác nhận. Kiểm tra trên bản đồ trước khi dùng."}
+        </p>
+      )}
+      <label>
+        Plus Code Google Maps
+        <input
+          value={plusCode}
+          maxLength={200}
+          autoCapitalize="characters"
+          autoComplete="off"
+          spellCheck={false}
+          aria-describedby="plus-code-help"
+          aria-invalid={!!codeError}
+          onChange={(e) => {
+            setPlusCode(e.target.value);
+            setCodeError("");
+          }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              void applyPlusCode();
+            }
+          }}
+        />
+      </label>
+      <p id="plus-code-help" className="field-hint">
+        Dán mã đầy đủ hoặc mã rút gọn kèm tên địa phương từ Google Maps. Mã rút
+        gọn không kèm địa phương sẽ dùng vị trí ghim hiện tại làm tham chiếu.
+      </p>
+      <button
+        type="button"
+        className="secondary"
+        disabled={busy}
+        onClick={() => void applyPlusCode()}
+      >
+        Đặt ghim từ Plus Code
+      </button>
+      {codeError && (
+        <p className="field-error" role="alert">
+          {codeError}
         </p>
       )}
       <div className="actions">

@@ -1,9 +1,56 @@
 import { z } from "zod";
 
-export const ROUND_MS = 15 * 60_000;
+export const DEFAULT_ROUND_MINUTES = 10;
+export const roundDurationMs = (config: { duration_minutes?: number }) =>
+  (config.duration_minutes ?? 15) * 60_000;
+export function attendanceTime(value: string) {
+  const time = Date.parse(value);
+  return Number.isFinite(time)
+    ? new Date(time + 7 * 3600_000).toISOString().slice(11, 19)
+    : value.startsWith("T")
+      ? value.slice(1)
+      : "";
+}
+export function attendanceDate(
+  round: "round_one" | "round_two",
+  starts?: string | null,
+  ends?: string | null,
+  durationMinutes = DEFAULT_ROUND_MINUTES,
+) {
+  const start = Date.parse(starts ?? ""),
+    end = Date.parse(ends ?? "");
+  if (
+    !Number.isFinite(start) ||
+    !Number.isFinite(end) ||
+    end <= start ||
+    !Number.isInteger(durationMinutes) ||
+    durationMinutes < 1 ||
+    durationMinutes > 60
+  )
+    return "";
+  const anchor =
+    round === "round_one"
+      ? start + (end - start) / 2 - durationMinutes * 30_000
+      : end - durationMinutes * 60_000;
+  return new Date(anchor + 7 * 3600_000).toISOString().slice(0, 10);
+}
+export function attendanceTimeOnEvent(
+  time: string,
+  round: "round_one" | "round_two",
+  starts?: string | null,
+  ends?: string | null,
+  durationMinutes = DEFAULT_ROUND_MINUTES,
+) {
+  if (!time) return "";
+  const date = attendanceDate(round, starts, ends, durationMinutes);
+  if (!date || !/^([01]\d|2[0-3]):[0-5]\d:[0-5]\d$/.test(time))
+    return `T${time}`;
+  return new Date(`${date}T${time}+07:00`).toISOString();
+}
 export const attendanceSchema = z
   .object({
     enabled: z.boolean(),
+    duration_minutes: z.number().int().min(1).max(60).optional(),
     radius_m: z.number().int().min(10).max(1000),
     qr_seconds: z.number().int().min(3).max(60),
     latitude: z.number().min(-85).max(85).nullable(),
@@ -38,26 +85,35 @@ export function locationSource(e: LocationSource) {
 export function defaultAttendance(
   starts?: string | null,
   ends?: string | null,
+  durationMinutes = DEFAULT_ROUND_MINUTES,
 ): AttendanceConfig {
   const start = Date.parse(starts ?? ""),
     end = Date.parse(ends ?? "");
   const suitable =
     Number.isFinite(start) &&
     Number.isFinite(end) &&
-    end - start >= 45 * 60_000 &&
+    Number.isInteger(durationMinutes) &&
+    durationMinutes >= 1 &&
+    durationMinutes <= 60 &&
+    end - start >= 3 * durationMinutes * 60_000 &&
     end - start <= 24 * 3600_000;
   return {
     enabled: false,
-    radius_m: 100,
+    duration_minutes: durationMinutes,
+    radius_m: 50,
     qr_seconds: 5,
     latitude: null,
     longitude: null,
     pin_confirmed: false,
     pin_source: "",
     round_one: suitable
-      ? new Date(start + (end - start) / 2 - ROUND_MS / 2).toISOString()
+      ? new Date(
+          start + (end - start) / 2 - durationMinutes * 30_000,
+        ).toISOString()
       : "",
-    round_two: suitable ? new Date(end - ROUND_MS).toISOString() : "",
+    round_two: suitable
+      ? new Date(end - durationMinutes * 60_000).toISOString()
+      : "",
   };
 }
 export function attendanceIssues(
@@ -71,7 +127,7 @@ export function attendanceIssues(
   const errors: string[] = [];
   if (!attendanceSchema.safeParse(config).success)
     errors.push(
-      "Bán kính phải từ 10 đến 1.000 m; chu kỳ QR từ 3 đến 60 giây. Tọa độ phải hợp lệ.",
+      "Bán kính phải từ 10 đến 1.000 m; chu kỳ QR từ 3 đến 60 giây; thời lượng mỗi đợt từ 1 đến 60 phút, đều là số nguyên. Tọa độ phải hợp lệ.",
     );
   if (!config.enabled || e.event_type === "congratulation") return errors;
   if (
@@ -85,16 +141,17 @@ export function attendanceIssues(
     end = Date.parse(e.ends_at ?? "");
   const one = Date.parse(config.round_one),
     two = Date.parse(config.round_two);
+  const duration = roundDurationMs(config);
   if (
     ![start, end, one, two].every(Number.isFinite) ||
     one < start ||
     two < start ||
-    one + ROUND_MS > end ||
-    two + ROUND_MS > end ||
-    one + ROUND_MS > two
+    one + duration > end ||
+    two + duration > end ||
+    one + duration > two
   )
     errors.push(
-      "Hai đợt dài 15 phút, theo thứ tự, không chồng nhau và nằm trong thời gian sự kiện.",
+      "Hai đợt phải theo thứ tự, không chồng nhau và nằm trong thời gian sự kiện.",
     );
   return errors;
 }
@@ -105,7 +162,7 @@ export function roundAt(
   if (!config.enabled) return null;
   for (const [index, time] of [config.round_one, config.round_two].entries()) {
     const open = Date.parse(time);
-    if (serverTime >= open && serverTime < open + ROUND_MS)
+    if (serverTime >= open && serverTime < open + roundDurationMs(config))
       return (index + 1) as 1 | 2;
   }
   return null;

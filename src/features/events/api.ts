@@ -117,6 +117,13 @@ export async function saveEvent(
       throw Error(
         "Backend chưa hỗ trợ điểm danh và thiệp mặc định. Thay đổi chưa được lưu.",
       );
+    if (
+      event.attendance_config?.duration_minutes !== undefined &&
+      capability.data?.duration_minutes !== true
+    )
+      throw Error(
+        "Máy chủ chưa hỗ trợ thời lượng điểm danh tùy chỉnh. Thay đổi chưa được lưu.",
+      );
   }
   const capability = await db().rpc("hsv_v3_capabilities");
   if (capability.error || capability.data?.version !== 3)

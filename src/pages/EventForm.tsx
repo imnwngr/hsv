@@ -28,7 +28,12 @@ import { InvitationManager } from "../features/invitations/InvitationManager";
 import { Confirm } from "../components/Confirm";
 import { EditorNavigation } from "../components/EditorNavigation";
 import { AttendanceEditor } from "../features/attendance/AttendanceEditor";
-import { defaultAttendance } from "../features/attendance/model";
+import {
+  defaultAttendance,
+  attendanceDate,
+  attendanceTime,
+  attendanceTimeOnEvent,
+} from "../features/attendance/model";
 import { RangePicker } from "../components/RangePicker";
 import { AgendaEditor } from "../components/AgendaEditor";
 import { ImageEditor } from "../components/ImageEditor";
@@ -144,6 +149,42 @@ function EventEditor({
     key: K,
     value: FieldPathValue<EventInput, K>,
   ) => setValue(key, value, { shouldDirty: true, shouldValidate: true });
+  const changeEventTime = (key: "starts_at" | "ends_at", value: string) => {
+    const previous = form.getValues();
+    const next = { ...previous, [key]: value };
+    const durationMinutes = previous.attendance_config?.duration_minutes ?? 15;
+    change(key, value);
+    if (
+      !previous.attendance_config ||
+      !attendanceDate(
+        "round_one",
+        next.starts_at,
+        next.ends_at,
+        durationMinutes,
+      )
+    )
+      return;
+    const config = { ...previous.attendance_config };
+    for (const round of ["round_one", "round_two"] as const) {
+      if (
+        attendanceDate(
+          round,
+          previous.starts_at,
+          previous.ends_at,
+          durationMinutes,
+        ) !==
+        attendanceDate(round, next.starts_at, next.ends_at, durationMinutes)
+      )
+        config[round] = attendanceTimeOnEvent(
+          attendanceTime(config[round]),
+          round,
+          next.starts_at,
+          next.ends_at,
+          durationMinutes,
+        );
+    }
+    change("attendance_config", config);
+  };
   const field = (
     name: "title" | "code" | "venue_name" | "address" | "place_id" | "maps_url",
     label: string,
@@ -413,8 +454,8 @@ function EventEditor({
               dateTime
               start={watch("starts_at") ?? ""}
               end={watch("ends_at") ?? ""}
-              onStart={(v) => change("starts_at", v)}
-              onEnd={(v) => change("ends_at", v)}
+              onStart={(v) => changeEventTime("starts_at", v)}
+              onEnd={(v) => changeEventTime("ends_at", v)}
               error={errors.starts_at?.message || errors.ends_at?.message}
             />
             <p className="footnote">Giờ Việt Nam (UTC+7), 00:00–23:59.</p>

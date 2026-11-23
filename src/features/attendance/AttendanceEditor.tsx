@@ -2,13 +2,16 @@ import { lazy, Suspense, useState } from "react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import { Switch } from "../../components/Switch";
-import { DateTime24 } from "../../components/DateTime24";
+import { SegmentedTime } from "../../components/SegmentedTime";
 import type { ClubEvent, EventInput } from "../../types/domain";
 import {
   attendanceIssues,
+  attendanceDate,
+  attendanceTime,
+  attendanceTimeOnEvent,
   defaultAttendance,
   locationSource,
-  ROUND_MS,
+  roundDurationMs,
   type AttendanceConfig,
 } from "./model";
 import "../../styles/attendance.css";
@@ -38,6 +41,11 @@ export function AttendanceEditor({
   const config = value ?? defaultAttendance(event.starts_at, event.ends_at);
   const [pinOpen, setPinOpen] = useState(false);
   const issues = attendanceIssues(config, event);
+  const durationMinutes = config.duration_minutes ?? 15;
+  const durationValid =
+    Number.isInteger(durationMinutes) &&
+    durationMinutes >= 1 &&
+    durationMinutes <= 60;
   const link = saved
     ? `${window.location.origin}${import.meta.env.BASE_URL}admin/attendance/${encodeURIComponent(saved.code)}/display`
     : "";
@@ -105,58 +113,59 @@ export function AttendanceEditor({
         </Suspense>
       )}
       <h3>Hai đợt điểm danh</h3>
+      <label>
+        Thời lượng mỗi đợt (phút)
+        <input
+          type="number"
+          min={1}
+          max={60}
+          step={1}
+          value={Number.isFinite(durationMinutes) ? durationMinutes : ""}
+          onChange={(e) =>
+            onChange({ ...config, duration_minutes: e.target.valueAsNumber })
+          }
+        />
+      </label>
+      <p className="field-hint">
+        Áp dụng cho cả hai đợt, từ 1 đến 60 phút. Giờ mở đã nhập được giữ
+        nguyên.
+      </p>
       <div className="attendance-fields">
         {(["round_one", "round_two"] as const).map((key, index) => (
           <div key={key}>
-            <DateTime24
+            <p className="field-label">Mở đợt {index + 1}</p>
+            <SegmentedTime
               label={`mở đợt ${index + 1}`}
-              value={config[key]}
-              onChange={(value) => {
-                const parsed = Date.parse(value),
-                  previous = Date.parse(config[key]);
+              value={attendanceTime(config[key])}
+              disabled={
+                !durationValid ||
+                !attendanceDate(
+                  key,
+                  event.starts_at,
+                  event.ends_at,
+                  durationMinutes,
+                )
+              }
+              onChange={(time) =>
                 onChange({
                   ...config,
-                  [key]: Number.isFinite(parsed)
-                    ? new Date(
-                        parsed +
-                          (Number.isFinite(previous) ? previous % 60_000 : 0),
-                      ).toISOString()
-                    : value,
-                });
-              }}
+                  [key]: attendanceTimeOnEvent(
+                    time,
+                    key,
+                    event.starts_at,
+                    event.ends_at,
+                    durationMinutes,
+                  ),
+                })
+              }
             />
-            <label>
-              Giây mở đợt {index + 1}
-              <select
-                value={
-                  Number.isFinite(Date.parse(config[key]))
-                    ? new Date(config[key]).getUTCSeconds()
-                    : 0
-                }
-                onChange={(e) => {
-                  const time = Date.parse(config[key]);
-                  if (Number.isFinite(time))
-                    onChange({
-                      ...config,
-                      [key]: new Date(
-                        Math.floor(time / 60_000) * 60_000 +
-                          Number(e.target.value) * 1000,
-                      ).toISOString(),
-                    });
-                }}
-              >
-                {Array.from({ length: 60 }, (_, second) => (
-                  <option key={second} value={second}>
-                    {String(second).padStart(2, "0")}
-                  </option>
-                ))}
-              </select>
-            </label>
             <p className="field-hint">
               Đóng:{" "}
-              {Number.isFinite(Date.parse(config[key]))
+              {durationValid && Number.isFinite(Date.parse(config[key]))
                 ? show(
-                    new Date(Date.parse(config[key]) + ROUND_MS).toISOString(),
+                    new Date(
+                      Date.parse(config[key]) + roundDurationMs(config),
+                    ).toISOString(),
                   )
                 : "Chưa chọn giờ"}
             </p>
@@ -166,8 +175,13 @@ export function AttendanceEditor({
       <button
         type="button"
         className="secondary"
+        disabled={!durationValid}
         onClick={() => {
-          const defaults = defaultAttendance(event.starts_at, event.ends_at);
+          const defaults = defaultAttendance(
+            event.starts_at,
+            event.ends_at,
+            durationMinutes,
+          );
           onChange({
             ...config,
             round_one: defaults.round_one,
@@ -178,8 +192,9 @@ export function AttendanceEditor({
         Tính lại lịch mặc định
       </button>
       <p className="field-hint">
-        Đợt 1 quanh trung điểm; đợt 2 trong 15 phút cuối. Sự kiện ngắn hoặc
-        nhiều ngày cần chọn lịch phù hợp. Mỗi đợt dài đúng 15 phút.
+        Nhập giờ:phút:giây. Ngày lấy theo lịch sự kiện; giờ đóng tự tính theo
+        thời lượng mỗi đợt. Đợt 1 mặc định quanh trung điểm, đợt 2 kết thúc cùng
+        sự kiện.
       </p>
       {(error || issues.length > 0) && (
         <p className="field-error" role="alert">

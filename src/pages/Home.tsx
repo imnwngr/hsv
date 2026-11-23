@@ -13,24 +13,50 @@ import {
   statusLabels,
 } from "../lib/domain";
 import { useClock } from "../hooks/useClock";
-import { Empty, ErrorState, Loading } from "../components/Feedback";
+import { useEventListFilters } from "../hooks/useEventListFilters";
+import { ErrorState, Loading } from "../components/Feedback";
 import { EventFilters } from "../components/EventFilters";
-import { ArrowDown, ArrowUpRight } from "lucide-react";
+import { EventSearch } from "../components/EventSearch";
+import { ArrowDown, ArrowUpRight, SearchX } from "lucide-react";
 import { PaperArt } from "../components/PaperArt";
-import { Reveal } from "../components/Reveal";
 export default function Home() {
   const query = useQuery({
     queryKey: ["events", "public"],
     queryFn: () => listEvents(),
   });
-  const [month, setMonth] = useState("");
-  const [year, setYear] = useState("");
+  const {
+    month,
+    setMonth,
+    year,
+    setYear,
+    search,
+    setSearch,
+    view,
+    setView,
+    clearFilters: resetFilters,
+  } = useEventListFilters();
   const [limit, setLimit] = useState(10);
   const now = useClock();
   const events = (query.data ?? []).filter(
     (event) => event.status === "published",
   );
-  const filtered = orderEvents(filterEvents(events, month, year), now);
+  const hasFilters = !!(search || month || year || view);
+  const filtered = orderEvents(
+    filterEvents(events, month, year, search),
+    now,
+  ).filter((event) => {
+    const status = eventStatus(event, now);
+    return (
+      !view ||
+      (view === "upcoming"
+        ? status === "upcoming" || status === "ongoing"
+        : status === view)
+    );
+  });
+  function clearFilters() {
+    resetFilters();
+    setLimit(10);
+  }
   const years = [...new Set(events.map((e) => eventYear(eventListDate(e))))]
     .sort()
     .reverse();
@@ -71,6 +97,46 @@ export default function Home() {
               Sự kiện
             </h2>
           </div>
+          <p className="listing-description">
+            Tìm một hoạt động. Mở một lời mời.
+          </p>
+        </div>
+        <div
+          className="event-views"
+          role="group"
+          aria-label="Lọc sự kiện công khai"
+        >
+          {[
+            { value: "", label: "Tất cả" },
+            { value: "upcoming", label: "Sắp & đang diễn ra" },
+            { value: "congratulation", label: "Thiệp chúc" },
+            { value: "ended", label: "Đã kết thúc" },
+          ].map((item) => (
+            <button
+              type="button"
+              key={item.value}
+              aria-pressed={view === item.value}
+              onClick={() => {
+                setView(item.value);
+                setLimit(10);
+              }}
+            >
+              {item.label}
+            </button>
+          ))}
+        </div>
+        <div
+          className="event-toolbar"
+          role="search"
+          aria-label="Tìm và lọc sự kiện"
+        >
+          <EventSearch
+            value={search}
+            onChange={(value) => {
+              setSearch(value);
+              setLimit(10);
+            }}
+          />
           <EventFilters
             month={month}
             year={year}
@@ -83,29 +149,56 @@ export default function Home() {
               setLimit(10);
             }}
             years={years}
+            showReset={false}
           />
+          {hasFilters && (
+            <button
+              type="button"
+              className="secondary filter-reset"
+              onClick={clearFilters}
+            >
+              Xóa bộ lọc
+            </button>
+          )}
         </div>
-        <p className="field-hint">
-          Bộ lọc dùng ngày diễn ra với Thiệp mời, ngày tạo với Thiệp chúc.
-        </p>
-        {!query.isPending && !query.error && (
+        <div className="list-context">
           <p className="result-count" role="status">
-            {filtered.length} sự kiện
-            {month || year ? " phù hợp với bộ lọc" : " được công bố"}
+            {!query.isPending && !query.error
+              ? `${filtered.length} sự kiện${hasFilters ? " phù hợp với bộ lọc" : " được công bố"}`
+              : ""}
           </p>
-        )}
+          <p>Thiệp mời theo ngày diễn ra; thiệp chúc theo ngày tạo.</p>
+        </div>
         {query.isPending ? (
           <Loading />
         ) : query.error ? (
           <ErrorState error={query.error} retry={() => void query.refetch()} />
         ) : !filtered.length ? (
-          <Empty>
-            Chưa có sự kiện trong thời gian này. Bạn có thể chọn tháng hoặc năm
-            khác.
-          </Empty>
+          <div className="state">
+            <SearchX size={28} aria-hidden="true" />
+            <h3>
+              {hasFilters
+                ? "Không tìm thấy sự kiện"
+                : "Chưa có sự kiện công khai"}
+            </h3>
+            <p>
+              {hasFilters
+                ? "Thử tên, mã hoặc thời gian khác để tìm sự kiện bạn cần."
+                : "Các hoạt động mới sẽ xuất hiện tại đây khi được công bố."}
+            </p>
+            {hasFilters && (
+              <button
+                type="button"
+                className="secondary"
+                onClick={clearFilters}
+              >
+                Hiện tất cả sự kiện
+              </button>
+            )}
+          </div>
         ) : (
           <>
-            <Reveal className="event-list" key={`${month}-${year}`}>
+            <div className="event-list">
               {filtered.slice(0, limit).map((e, i) => (
                 <article
                   key={e.id}
@@ -167,7 +260,7 @@ export default function Home() {
                   </Link>
                 </article>
               ))}
-            </Reveal>
+            </div>
             {filtered.length > limit && (
               <button
                 className="secondary load-more"

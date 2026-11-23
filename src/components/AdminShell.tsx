@@ -25,7 +25,9 @@ export function AdminShell() {
         ? "Thêm sự kiện"
         : pathname.includes("/edit/")
           ? "Chỉnh sửa sự kiện"
-          : "Sự kiện";
+          : pathname.includes("/attendance/")
+            ? "Kết quả điểm danh"
+            : "Sự kiện";
   function navigation() {
     return (
       <nav className="admin-navigation" aria-label="Quản trị">

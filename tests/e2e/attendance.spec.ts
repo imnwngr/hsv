@@ -17,7 +17,9 @@ const event = {
   event_type: "invitation" as const,
 };
 const config = {
-  ...defaultAttendance(event.starts_at, event.ends_at),
+  ...defaultAttendance(event.starts_at, event.ends_at, 15),
+  radius_m: 100,
+  duration_minutes: undefined,
   latitude: 10,
   longitude: 105,
   pin_confirmed: true,
@@ -43,7 +45,8 @@ async function fixture(page: Page, admin = false) {
     const path = new URL(route.request().url()).pathname,
       input = route.request().postDataJSON();
     let data: unknown = null;
-    if (path.endsWith("attendance_capabilities")) data = { version: 1 };
+    if (path.endsWith("attendance_capabilities"))
+      data = { version: 1, duration_minutes: true };
     if (path.endsWith("attendance_status"))
       data = {
         eligible: true,
@@ -216,12 +219,13 @@ test("publication writes only status, disables pending switch, and rolls back fa
     return route.fulfill({ status: 500, json: { message: "Lỗi kiểm thử" } });
   });
   await page.goto("/hsv/admin/");
-  const toggle = page
+  const row = page.locator('[data-event-code="design-fixture"]');
+  const toggle = row
     .getByRole("switch", { name: "Đã công khai", exact: true })
     .first();
   await toggle.click();
   await expect(
-    page.getByRole("switch", { name: "Chưa công khai", exact: true }).first(),
+    row.getByRole("switch", { name: "Chưa công khai", exact: true }),
   ).toBeDisabled();
   expect(captured).toEqual({ status: "draft" });
   finish();
@@ -689,7 +693,7 @@ test("saved pin persists, moving it requires confirmation, and short Maps links 
   const circle = await page.locator(".pin-radius").boundingBox();
   await page.getByLabel("Bán kính (m)").fill("200");
   expect((await page.locator(".pin-radius").boundingBox())!.width).toBeCloseTo(
-    circle!.width * 2,
+    circle!.width * 4,
     0,
   );
   await page.locator(".attendance-map").focus();
@@ -707,4 +711,213 @@ test("saved pin persists, moving it requires confirmation, and short Maps links 
   await expect(
     page.getByText("Ghim đã được xác nhận.", { exact: true }),
   ).toBeVisible();
+});
+
+test("attendance uses segmented hours without date inputs and follows event dates while retaining seconds", async ({
+  page,
+}, info) => {
+  const { writes } = await fixture(page, true);
+  await page.goto("/hsv/admin/edit/design-fixture");
+  const attendance = page.locator("#editor-attendance");
+  await expect(attendance.locator('input[type="date"]')).toHaveCount(0);
+  const hour = page.getByLabel("Giờ mở đợt 1", { exact: true });
+  const minute = page.getByLabel("Phút mở đợt 1", { exact: true });
+  const second = page.getByLabel("Giây mở đợt 1", { exact: true });
+  await expect(hour).toHaveValue("08");
+  await expect(minute).toHaveValue("52");
+  await expect(second).toHaveValue("30");
+  await hour.focus();
+  await hour.pressSequentially("09");
+  await expect(hour).toHaveValue("09");
+  await expect(minute).toBeFocused();
+  await minute.fill("00");
+  await expect(second).toBeFocused();
+  await expect(attendance).toContainText("09:15:30");
+  await hour.fill("27");
+  await page.getByRole("button", { name: "Lưu sự kiện", exact: true }).click();
+  await expect(attendance.getByRole("alert")).toContainText("Nhập đủ giờ");
+  expect(writes).toHaveLength(0);
+  await page.getByRole("link", { name: "Về danh sách quản trị" }).click();
+  await expect(
+    page.getByRole("dialog", { name: "Rời trang khi chưa lưu?" }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Hủy", exact: true }).click();
+  await expect(hour).toHaveValue("27");
+  await hour.fill("09");
+  await page
+    .getByRole("button", { name: "Thời gian sự kiện", exact: true })
+    .click();
+  await page.getByLabel("Ngày Kết thúc", { exact: true }).fill("2099-10-21");
+  await page.getByLabel("Ngày Bắt đầu", { exact: true }).fill("2099-10-21");
+  await expect(hour).toHaveValue("09");
+  await expect(second).toHaveValue("30");
+  await expect(attendance).toContainText("21/10/99");
+  await attendance
+    .getByRole("heading", { name: "Hai đợt điểm danh", exact: true })
+    .evaluate((element) => {
+      const offset =
+        document.querySelector(".editor-nav")!.getBoundingClientRect().bottom +
+        20;
+      window.scrollBy(0, element.getBoundingClientRect().top - offset);
+    });
+  await shot(page, `time-only-${info.project.name}`);
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= window.innerWidth,
+    ),
+  ).toBe(true);
+  await page.getByRole("button", { name: "Lưu sự kiện", exact: true }).click();
+  await expect(page.getByText("Đã lưu sự kiện", { exact: true })).toBeVisible();
+  expect(
+    (
+      writes.find((w) => w.path.endsWith("save_event"))!.body as {
+        p_event: { attendance_config: unknown };
+      }
+    ).p_event.attendance_config,
+  ).toMatchObject({
+    round_one: "2099-10-21T02:00:30.000Z",
+    round_two: "2099-10-21T02:45:00.000Z",
+  });
+});
+
+test("new attendance defaults to 50m and ten minutes, custom duration follows Save and legacy values remain intact", async ({
+  page,
+}, info) => {
+  const { writes } = await designBackend(page, {
+    admin: true,
+    event: { ...event, attendance_config: null },
+  });
+  await page.route("**/rest/v1/rpc/attendance_capabilities", (route) =>
+    route.fulfill({ json: { version: 1, duration_minutes: true } }),
+  );
+  await page.goto("/hsv/admin/edit/design-fixture");
+  const section = page.locator("#editor-attendance");
+  const duration = page.getByLabel("Thời lượng mỗi đợt (phút)");
+  await expect(page.getByLabel("Bán kính (m)")).toHaveValue("50");
+  await expect(duration).toHaveValue("10");
+  await expect(page.getByLabel("Phút mở đợt 1", { exact: true })).toHaveValue(
+    "55",
+  );
+  await expect(section).toContainText("09:05:00");
+  await duration.fill("0");
+  await expect(section.getByRole("alert")).toContainText(
+    "thời lượng mỗi đợt từ 1 đến 60 phút",
+  );
+  await page.getByRole("button", { name: "Lưu sự kiện", exact: true }).click();
+  expect(writes).toHaveLength(0);
+  await duration.fill("7");
+  await expect(page.getByLabel("Phút mở đợt 1", { exact: true })).toHaveValue(
+    "55",
+  );
+  await expect(section).toContainText("09:02:00");
+  await page.getByRole("button", { name: "Tính lại lịch mặc định" }).click();
+  await expect(page.getByLabel("Phút mở đợt 1", { exact: true })).toHaveValue(
+    "56",
+  );
+  await expect(page.getByLabel("Giây mở đợt 1", { exact: true })).toHaveValue(
+    "30",
+  );
+  await expect(section).toContainText("09:03:30");
+  await page.getByRole("link", { name: "Về danh sách quản trị" }).click();
+  await expect(
+    page.getByRole("dialog", { name: "Rời trang khi chưa lưu?" }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Hủy", exact: true }).click();
+  for (const width of info.project.name === "desktop"
+    ? [320, 390, 768, 1440]
+    : [390]) {
+    await page.setViewportSize({ width, height: 900 });
+    await duration.scrollIntoViewIfNeeded();
+    await shot(page, `duration-${info.project.name}-${width}`);
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= innerWidth,
+      ),
+    ).toBe(true);
+  }
+  await page.getByRole("button", { name: "Lưu sự kiện", exact: true }).click();
+  await expect(page.getByText("Đã lưu sự kiện", { exact: true })).toBeVisible();
+  const saved = (
+    writes.find((write) => write.path.endsWith("save_event"))!.body as {
+      p_event: { attendance_config: unknown };
+    }
+  ).p_event.attendance_config;
+  expect(saved).toMatchObject({
+    radius_m: 50,
+    duration_minutes: 7,
+    round_one: "2099-10-20T01:56:30.000Z",
+    round_two: "2099-10-20T02:53:00.000Z",
+  });
+});
+
+test("Plus Code selects a pin without saving, requires confirmation and handles locality lookup failures", async ({
+  page,
+}, info) => {
+  const { writes } = await fixture(page, true);
+  let lookups = 0;
+  await page.route("https://nominatim.openstreetmap.org/**", (route) => {
+    lookups++;
+    return route.fulfill({
+      json: [{ lat: "10", lon: "105", display_name: "Địa phương kiểm thử" }],
+    });
+  });
+  await page.goto("/hsv/admin/edit/design-fixture");
+  await page.getByRole("button", { name: "Chọn ghim điểm danh" }).click();
+  const code = page.getByLabel("Plus Code Google Maps", { exact: true });
+  await code.fill("7P272222+22");
+  await code.press("Enter");
+  await expect(page.getByLabel("Vĩ độ", { exact: true })).toHaveValue(
+    "10.0000625",
+  );
+  await expect(page.getByLabel("Kinh độ", { exact: true })).toHaveValue(
+    "105.0000625",
+  );
+  expect(lookups).toBe(0);
+  expect(writes).toHaveLength(0);
+  await expect(
+    page.getByText("Cần kiểm tra và xác nhận ghim trước khi bật.", {
+      exact: true,
+    }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Xác nhận ghim điểm danh" }).click();
+  await expect(
+    page.getByText("Ghim đã được xác nhận.", { exact: true }),
+  ).toBeVisible();
+  await code.fill("not-a-code");
+  await page.getByRole("button", { name: "Đặt ghim từ Plus Code" }).click();
+  await expect(code).toHaveAttribute("aria-invalid", "true");
+  await expect(page.getByLabel("Vĩ độ", { exact: true })).toHaveValue(
+    "10.0000625",
+  );
+  await code.fill("2222+22 Địa phương kiểm thử");
+  await page.getByRole("button", { name: "Đặt ghim từ Plus Code" }).click();
+  await expect(
+    page.getByText(
+      "Ghim gợi ý chưa được xác nhận. Kiểm tra trên bản đồ trước khi dùng.",
+      { exact: true },
+    ),
+  ).toBeVisible();
+  expect(lookups).toBe(1);
+  await page.getByRole("button", { name: "Xác nhận ghim điểm danh" }).click();
+  await code.scrollIntoViewIfNeeded();
+  await shot(page, `plus-code-${info.project.name}`);
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= window.innerWidth,
+    ),
+  ).toBe(true);
+  await page.waitForTimeout(1150);
+  await page.route("https://nominatim.openstreetmap.org/**", (route) =>
+    route.abort(),
+  );
+  await page.getByRole("button", { name: "Đặt ghim từ Plus Code" }).click();
+  await expect(
+    page
+      .getByRole("alert")
+      .filter({ hasText: "Không tìm được địa phương lúc này" }),
+  ).toBeVisible();
+  await expect(
+    page.getByText("Ghim đã được xác nhận.", { exact: true }),
+  ).toBeVisible();
+  expect(writes).toHaveLength(0);
 });

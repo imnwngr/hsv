@@ -135,6 +135,8 @@ try {
     ),
   );
   query(readFileSync("supabase/proposals/attendance.sql", "utf8"));
+  query(readFileSync("supabase/proposals/attendance-duration.sql", "utf8"));
+  query(readFileSync("supabase/proposals/duplicate-event.sql", "utf8"));
   query(
     `insert into guests(id,name,kind,primary_alias) values('${group}','Nhóm kiểm thử','group','nhom-test')`,
   );
@@ -153,7 +155,7 @@ try {
     ),
   );
   query(
-    `update events set status='published', attendance_config=jsonb_build_object('enabled',true,'radius_m',100,'qr_seconds',60,'latitude',10,'longitude',105,'pin_confirmed',true,'pin_source',attendance_private.location_source(events)::text,'round_one',clock_timestamp()-interval '1 minute','round_two',clock_timestamp()+interval '20 minutes') where id='${event.id}'`,
+    `update events set status='published', attendance_config=jsonb_build_object('enabled',true,'duration_minutes',10,'radius_m',50,'qr_seconds',60,'latitude',10,'longitude',105,'pin_confirmed',true,'pin_source',attendance_private.location_source(events)::text,'round_one',clock_timestamp()-interval '1 minute','round_two',clock_timestamp()+interval '20 minutes') where id='${event.id}'`,
   );
   const token = () =>
     JSON.parse(query("select attendance_display('attendance-concurrency')"))
@@ -215,6 +217,33 @@ try {
     ),
     "1",
   );
+  const duplicate = (id) => `select duplicate_event('${event.id}','${id}')`;
+  const copyA = "40000000-0000-4000-8000-000000000001";
+  const copyB = "40000000-0000-4000-8000-000000000002";
+  const copies = await race(duplicate(copyA), duplicate(copyB));
+  assert.deepEqual(copies.map((copy) => copy.code).sort(), [
+    "attendance-concurrency-copy",
+    "attendance-concurrency-copy-2",
+  ]);
+  const replayId = "40000000-0000-4000-8000-000000000003";
+  const replay = await race(duplicate(replayId), duplicate(replayId));
+  assert.deepEqual(replay[0], replay[1]);
+  assert.equal(
+    query(`select count(*) from events where duplicated_from_id='${event.id}'`),
+    "3",
+  );
+  assert.equal(
+    query(
+      `select count(*) from attendance_private.records where event_id in ('${copyA}','${copyB}','${replayId}')`,
+    ),
+    "0",
+  );
+  assert.equal(
+    query(
+      `select count(*) from event_guests where event_id in ('${copyA}','${copyB}','${replayId}')`,
+    ),
+    "6",
+  );
   const report = {
     engine: "PostgreSQL 18, new synthetic loopback cluster",
     independentSessions: true,
@@ -223,6 +252,10 @@ try {
     editCollision: "PASS",
     browserBindingRace: "PASS",
     stableRecordAndTimestamp: "PASS",
+    configurableDuration: "10 minutes",
+    duplicateEventCodeRace: "PASS",
+    duplicateEventRetryRace: "PASS",
+    duplicateEventSnapshotsWithoutResults: "PASS",
     productionWrites: 0,
   };
   writeFileSync(path.join(out, "result.json"), JSON.stringify(report, null, 2));

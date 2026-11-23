@@ -20,6 +20,7 @@ beforeAll(async () => {
     sqlFile("supabase/migrations/202611200001_event_types_theme.sql"),
   );
   await pg.exec(sqlFile("supabase/proposals/attendance.sql"));
+  await pg.exec(sqlFile("supabase/proposals/attendance-duration.sql"));
   await pg.query(
     "insert into guests(id,name,kind,primary_alias) values($1,'Nhóm kiểm thử','group','nhom-test')",
     [group],
@@ -44,6 +45,76 @@ beforeAll(async () => {
 }, 30000);
 afterAll(async () => {
   await pg?.close();
+});
+it("validates configurable duration, server round boundaries and QR closing time, preserving legacy duration", async () => {
+  const read = async () =>
+    (
+      await pg.query<{ c: Record<string, unknown> }>(
+        "select attendance_config c from events where id=$1",
+        [eventId],
+      )
+    ).rows[0].c;
+  const old = await read();
+  expect(await rpc("attendance_capabilities()")).toMatchObject({
+    duration_minutes: true,
+  });
+  expect(
+    await rpc("extract(epoch from attendance_private.duration($1))", [old]),
+  ).toBe("900.000000");
+  for (const minutes of [0, -1, 61, 1.5, "10", null]) {
+    await expect(
+      pg.query("update events set attendance_config=$1 where id=$2", [
+        { ...old, duration_minutes: minutes },
+        eventId,
+      ]),
+    ).rejects.toThrow();
+    expect(await read()).toEqual(old);
+  }
+  for (const minutes of [1, 7, 10, 15]) {
+    const config = {
+      ...old,
+      duration_minutes: minutes,
+      round_one: new Date(Date.now() - 30_000).toISOString(),
+    };
+    await pg.query("update events set attendance_config=$1 where id=$2", [
+      config,
+      eventId,
+    ]);
+    const open = Date.parse(config.round_one);
+    for (const [time, round] of [
+      [open - 1, null],
+      [open, 1],
+      [open + minutes * 60_000 - 1, 1],
+      [open + minutes * 60_000, null],
+    ])
+      expect(
+        await rpc(
+          "(select attendance_private.round_at(e,$2) from events e where id=$1)",
+          [eventId, new Date(time as number).toISOString()],
+        ),
+      ).toBe(round);
+    const status = await rpc<{ closes_at: string }>(
+      "attendance_status('attendance-test','nhom-test')",
+    );
+    expect(Date.parse(status.closes_at)).toBe(open + minutes * 60_000);
+    const display = await rpc<{ closes_at: string; expires_at: string }>(
+      "attendance_display('attendance-test')",
+    );
+    expect(Date.parse(display.closes_at)).toBe(open + minutes * 60_000);
+    expect(Date.parse(display.expires_at)).toBeLessThanOrEqual(
+      Date.parse(display.closes_at),
+    );
+  }
+  await expect(
+    pg.query("update events set attendance_config=$1 where id=$2", [
+      { ...old, duration_minutes: 30 },
+      eventId,
+    ]),
+  ).rejects.toThrow();
+  await pg.query("update events set attendance_config=$1 where id=$2", [
+    old,
+    eventId,
+  ]);
 });
 const token = async () =>
   (await rpc<{ token: string }>("attendance_display('attendance-test')")).token;

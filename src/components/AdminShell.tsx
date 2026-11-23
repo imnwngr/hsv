@@ -64,7 +64,12 @@ export function AdminShell() {
     return <Outlet />;
   return (
     <>
-      <Toaster richColors position="top-right" closeButton />
+      <Toaster
+        richColors
+        position="top-right"
+        closeButton
+        toastOptions={{ closeButtonAriaLabel: "Đóng thông báo" }}
+      />
       <div className="admin-shell">
         <aside className="admin-sidebar">
           <p className="section-label">Không gian quản trị</p>

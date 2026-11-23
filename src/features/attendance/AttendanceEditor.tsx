@@ -61,7 +61,7 @@ export function AttendanceEditor({
         label="Bật điểm danh theo lịch"
         onChange={(enabled) => onChange({ ...config, enabled })}
       />
-      <div className="attendance-fields">
+      <div className="attendance-settings">
         <label>
           Bán kính (m)
           <input
@@ -74,6 +74,7 @@ export function AttendanceEditor({
               onChange({ ...config, radius_m: e.target.valueAsNumber })
             }
           />
+          <small className="field-hint">Từ 10 đến 1.000 m.</small>
         </label>
         <label>
           Chu kỳ thay QR (giây)
@@ -87,49 +88,76 @@ export function AttendanceEditor({
               onChange({ ...config, qr_seconds: e.target.valueAsNumber })
             }
           />
+          <small className="field-hint">Từ 3 đến 60 giây.</small>
+        </label>
+        <label>
+          Thời lượng mỗi đợt (phút)
+          <input
+            type="number"
+            min={1}
+            max={60}
+            step={1}
+            value={Number.isFinite(durationMinutes) ? durationMinutes : ""}
+            onChange={(e) =>
+              onChange({ ...config, duration_minutes: e.target.valueAsNumber })
+            }
+          />
+          <small className="field-hint">
+            1–60 phút, áp dụng cho cả hai đợt.
+          </small>
         </label>
       </div>
       <p className="field-hint">
-        Bán kính 10–1.000 m. QR đổi mỗi 3–60 giây; mã cũ chỉ được chấp nhận thêm
-        tối đa 1 giây, không vượt giờ đóng đợt.
+        Mã QR cũ chỉ được chấp nhận thêm tối đa 1 giây, không vượt giờ đóng đợt.
       </p>
-      <h3>Vị trí điểm danh</h3>
-      <p>
-        {config.pin_confirmed && config.pin_source === locationSource(event)
-          ? `Đã xác nhận: ${config.latitude}, ${config.longitude}`
-          : "Cần kiểm tra và xác nhận ghim trước khi bật."}
-      </p>
-      <button
-        type="button"
-        className="secondary"
-        aria-expanded={pinOpen}
-        onClick={() => setPinOpen(!pinOpen)}
-      >
-        {pinOpen ? "Đóng bản đồ" : "Chọn ghim điểm danh"}
-      </button>
+      <div className="attendance-group-heading">
+        <div>
+          <h3>Vị trí điểm danh</h3>
+          <p className="field-hint">
+            {config.pin_confirmed && config.pin_source === locationSource(event)
+              ? `Đã xác nhận: ${config.latitude}, ${config.longitude}`
+              : "Cần kiểm tra và xác nhận ghim trước khi bật."}
+          </p>
+        </div>
+        <button
+          type="button"
+          className="secondary"
+          aria-expanded={pinOpen}
+          onClick={() => setPinOpen(!pinOpen)}
+        >
+          {pinOpen ? "Đóng bản đồ" : "Chọn ghim điểm danh"}
+        </button>
+      </div>
       {pinOpen && (
         <Suspense fallback={<p role="status">Đang tải phần chọn ghim…</p>}>
           <PinPicker value={config} source={event} onChange={onChange} />
         </Suspense>
       )}
-      <h3>Hai đợt điểm danh</h3>
-      <label>
-        Thời lượng mỗi đợt (phút)
-        <input
-          type="number"
-          min={1}
-          max={60}
-          step={1}
-          value={Number.isFinite(durationMinutes) ? durationMinutes : ""}
-          onChange={(e) =>
-            onChange({ ...config, duration_minutes: e.target.valueAsNumber })
-          }
-        />
-      </label>
-      <p className="field-hint">
-        Áp dụng cho cả hai đợt, từ 1 đến 60 phút. Giờ mở đã nhập được giữ
-        nguyên.
-      </p>
+      <div className="attendance-group-heading">
+        <div>
+          <h3>Hai đợt điểm danh</h3>
+          <p className="field-hint">Đổi thời lượng vẫn giữ giờ mở đã nhập.</p>
+        </div>
+        <button
+          type="button"
+          className="secondary"
+          disabled={!durationValid}
+          onClick={() => {
+            const defaults = defaultAttendance(
+              event.starts_at,
+              event.ends_at,
+              durationMinutes,
+            );
+            onChange({
+              ...config,
+              round_one: defaults.round_one,
+              round_two: defaults.round_two,
+            });
+          }}
+        >
+          Tính lại lịch mặc định
+        </button>
+      </div>
       <div className="attendance-fields">
         {(["round_one", "round_two"] as const).map((key, index) => (
           <div key={key}>
@@ -172,25 +200,6 @@ export function AttendanceEditor({
           </div>
         ))}
       </div>
-      <button
-        type="button"
-        className="secondary"
-        disabled={!durationValid}
-        onClick={() => {
-          const defaults = defaultAttendance(
-            event.starts_at,
-            event.ends_at,
-            durationMinutes,
-          );
-          onChange({
-            ...config,
-            round_one: defaults.round_one,
-            round_two: defaults.round_two,
-          });
-        }}
-      >
-        Tính lại lịch mặc định
-      </button>
       <p className="field-hint">
         Nhập giờ:phút:giây. Ngày lấy theo lịch sự kiện; giờ đóng tự tính theo
         thời lượng mỗi đợt. Đợt 1 mặc định quanh trung điểm, đợt 2 kết thúc cùng

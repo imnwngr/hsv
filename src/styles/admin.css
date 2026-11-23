@@ -19,6 +19,40 @@
 .site-admin > main {
   max-width: 1600px;
 }
+.site-admin [data-sonner-toast][data-styled="true"] {
+  min-height: 64px;
+  padding-inline-end: 60px;
+}
+.site-admin [data-sonner-toast][data-styled="true"] [data-close-button] {
+  inset: 50% 8px auto auto;
+  transform: translateY(-50%);
+  width: 44px;
+  height: 44px;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-control);
+  background: transparent;
+  color: inherit;
+  box-shadow: none;
+}
+.site-admin [data-sonner-toast][data-styled="true"] [data-close-button] svg {
+  width: 16px;
+  height: 16px;
+  flex: none;
+}
+.site-admin
+  [data-sonner-toast][data-styled="true"]:hover
+  [data-close-button]:hover {
+  background: color-mix(in srgb, currentColor 10%, transparent);
+  color: inherit;
+}
+.site-admin
+  [data-sonner-toast][data-styled="true"]
+  [data-close-button]:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: -4px;
+}
 .site-admin .site-header {
   position: sticky;
   top: 0;
@@ -430,7 +464,11 @@
 .editor {
   max-width: 1100px;
   margin: auto;
-  padding-block: 1.5rem 4rem;
+  padding-block: 0.75rem 3rem;
+}
+.editor h1 {
+  font-size: clamp(1.75rem, 2.5vw, 2.25rem);
+  margin-block: 0.5rem 0.75rem;
 }
 .editor > a {
   display: inline-flex;
@@ -442,6 +480,7 @@
   color: var(--muted);
   font-size: 0.875rem;
   max-width: 42rem;
+  margin-block: 0;
 }
 .editor-nav {
   position: sticky;
@@ -453,8 +492,8 @@
   gap: 0.25rem;
   flex-wrap: nowrap;
   overflow-x: auto;
-  padding: 0.75rem 0;
-  margin-block: 1rem 1.5rem;
+  padding: 0.5rem 0;
+  margin-block: 1rem;
   border-block: 1px solid var(--border);
 }
 .editor-nav a {
@@ -488,7 +527,83 @@
   font-size: 0.8125rem;
 }
 .editor form > fieldset {
-  padding: clamp(1rem, 3vw, 2rem);
+  padding: clamp(16px, 2vw, 24px);
+}
+.editor fieldset {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 1rem;
+}
+.editor .segmented-time {
+  flex-wrap: wrap;
+  max-width: 100%;
+}
+.editor .agenda-sort-actions {
+  flex-wrap: wrap;
+}
+.editor .agenda-card {
+  padding: clamp(12px, 1.5vw, 16px);
+}
+.editor .actions > button {
+  max-width: 100%;
+}
+.editor legend {
+  font-size: 1.125rem;
+}
+.editor fieldset > :is(p, h3),
+.editor .rich-quote > p:first-child {
+  margin-block: 0;
+}
+.editor .event-type-option {
+  flex-direction: row;
+  padding: 0.75rem;
+}
+.editor .event-type-options {
+  gap: 0.75rem;
+}
+.editor .theme-editor {
+  gap: 1.25rem;
+}
+.editor .theme-presets {
+  margin-block-end: 0.75rem;
+}
+.editor .custom-color {
+  flex-direction: row;
+  justify-content: flex-start;
+  margin-block: 0.75rem;
+}
+.editor .theme-preview-paper {
+  gap: 0.75rem;
+  padding: 1rem;
+}
+.editor .venue-image-frame {
+  aspect-ratio: auto;
+  min-height: 120px;
+  max-height: 260px;
+}
+.editor .venue-image {
+  max-height: 260px;
+  margin-block: 0;
+}
+.editor .publication-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 1rem;
+}
+.editor .publication-summary > p {
+  margin: 0;
+}
+.editor .publication-summary > .field-hint {
+  flex: 1 1 16rem;
+}
+.editor-identity-fields {
+  display: grid;
+  gap: 1rem;
+}
+@media (min-width: 700px) {
+  .editor-identity-fields {
+    grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+  }
 }
 .editor :is(fieldset, section)[id] {
   scroll-margin-top: var(--editor-scroll-offset, 160px);

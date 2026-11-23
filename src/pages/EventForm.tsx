@@ -367,19 +367,21 @@ function EventEditor({
               </div>
             )}
           </fieldset>
-          <label>
-            Tên sự kiện *
-            <AutoGrowingTextarea
-              {...register("title")}
-              value={watch("title")}
-              aria-label="Tên sự kiện *"
-              aria-invalid={!!errors.title}
-            />
-            {errors.title && (
-              <span className="field-error">{errors.title.message}</span>
-            )}
-          </label>
-          {field("code", "Mã sự kiện")}
+          <div className="editor-identity-fields">
+            <label>
+              Tên sự kiện *
+              <AutoGrowingTextarea
+                {...register("title")}
+                value={watch("title")}
+                aria-label="Tên sự kiện *"
+                aria-invalid={!!errors.title}
+              />
+              {errors.title && (
+                <span className="field-error">{errors.title.message}</span>
+              )}
+            </label>
+            {field("code", "Mã sự kiện")}
+          </div>
           {!event && (
             <small className="field-hint">
               Để trống để tạo mã từ tên khi lưu lần đầu; nếu trùng hãy chỉnh mã.
@@ -503,8 +505,10 @@ function EventEditor({
             </p>
             {location === "url" && field("maps_url", "Google Maps URL *")}
             {location === "place" && field("place_id", "Google Place ID *")}
-            {field("venue_name", "Tên địa điểm")}
-            {field("address", "Địa chỉ")}
+            <div className="form-grid">
+              {field("venue_name", "Tên địa điểm")}
+              {field("address", "Địa chỉ")}
+            </div>
             <label>
               Hướng dẫn vị trí
               <textarea {...register("directions")} />
@@ -565,17 +569,17 @@ function EventEditor({
             Thiệp này sẽ được mở từ danh sách sự kiện công khai. Chỉ chọn được
             người hoặc đơn vị đã có thiệp được lưu trong sự kiện.
           </p>
-          <p className="field-hint">
-            Bản nháp chỉ dành cho quản trị. Khi công bố, sự kiện và thiệp đã lưu
-            sẽ hiển thị qua liên kết tương ứng.
-          </p>
-          <p className={`status ${event?.status ?? "draft"}`}>
-            {event?.status === "published" ? "Đã công khai" : "Chưa công khai"}
-          </p>
-          <p className="field-hint">
-            Đổi trạng thái công khai tại danh sách sự kiện. Lưu nội dung không
-            tự công khai sự kiện.
-          </p>
+          <div className="publication-summary">
+            <p className={`status ${event?.status ?? "draft"}`}>
+              {event?.status === "published"
+                ? "Đã công khai"
+                : "Chưa công khai"}
+            </p>
+            <p className="field-hint">
+              Bản nháp chỉ dành cho quản trị. Đổi trạng thái tại danh sách sự
+              kiện; Lưu nội dung không tự công khai.
+            </p>
+          </div>
           {event && <a href="#invitation-links">Đến danh sách thiệp</a>}
         </fieldset>
         {!congratulation && (

@@ -1,0 +1,36 @@
+{
+  "release": "hsv4",
+  "project_ref": "trdofhdspbkwgernwybp",
+  "baseline": "../hsv3-before-hsv4",
+  "status": "prepared",
+  "approval": "User explicitly requested branch hsv4, commits/push and application of new SQL on 2026-11-23.",
+  "frontend_deployed": false,
+  "edge_deployed": false,
+  "hash_encoding": "SHA-256 UTF-8 with CRLF normalized to LF",
+  "steps": [
+    {
+      "order": 1,
+      "name": "hsv4_attendance_base",
+      "file": "01-attendance.sql",
+      "sha256": "5aa18d8291b58970812d4f8c5367c0ccec174e49ee8f15617a8a247c0e9b7aa6",
+      "status": "prepared",
+      "migration_version": null
+    },
+    {
+      "order": 2,
+      "name": "hsv4_attendance_duration",
+      "file": "02-attendance-duration.sql",
+      "sha256": "98a8b8eb4ae03ed9db45d40bfa01c56e2e505f78bf8b42431995891c782145f0",
+      "status": "prepared",
+      "migration_version": null
+    },
+    {
+      "order": 3,
+      "name": "hsv4_event_duplication",
+      "file": "03-duplicate-event.sql",
+      "sha256": "33d1075c3ef7f48f28e87bf945038864d92a55353131d29a7d7ab6b916f98b98",
+      "status": "prepared",
+      "migration_version": null
+    }
+  ]
+}

@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
     inputs:
       quick_deploy:
-        description: "Run focused attendance/camera/reorder browser checks for this hotfix"
+        description: "Run focused attendance, role management and reorder browser checks"
         type: boolean
         default: false
 permissions:
@@ -34,7 +34,7 @@ jobs:
         if: github.event_name != 'workflow_dispatch' || !inputs.quick_deploy
       - name: Focused browser checks for quick deploy
         if: github.event_name == 'workflow_dispatch' && inputs.quick_deploy
-        run: npm run test:e2e -- --grep 'guest directory compact/full|permission recovery|location error|camera|closed rounds do not auto-popup'
+        run: npm run test:e2e -- --grep 'guest directory compact/full|permission recovery|location error|camera|closed rounds do not auto-popup|account roles|role directory|role revoke|v3 add Editor|v3 disabled email|v3 invitation availability'
       - uses: actions/upload-artifact@v4
         if: always()
         with:

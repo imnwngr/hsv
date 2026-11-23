@@ -29,6 +29,7 @@ try {
     ${setRole}
     create function public.hsv_v3_capabilities() returns jsonb language sql immutable set search_path='' as $$select '{"version":3}'::jsonb$$;
     ${readFileSync("supabase/migrations/202611200002_editor_add_operations.sql","utf8")}
+    ${readFileSync("supabase/releases/role-management/01-account-roles.sql","utf8")}
     insert into auth.users(id,email) values('20000000-0000-4000-8000-000000000001','admin@fixture.invalid');
     insert into admin_users values('20000000-0000-4000-8000-000000000001');`;
   const file=path.join(out,"setup.sql");writeFileSync(file,setup);run("psql",[...args,"-f",file]);
@@ -43,6 +44,12 @@ try {
   const pids=results.map(r=>r.split(/\r?\n/).find(l=>/^\d+$/.test(l)));
   assert.notEqual(pids[0],pids[1]);assert.deepEqual(states,["invite","processing"]);
   assert.equal(query("select count(*) from editor_add_operations").trim(),"1");
-  const result={engine:"PostgreSQL 17.11 portable, loopback only",independentSessions:true,distinctPids:true,states,ledgerRows:1,emailSent:0};
+  query("insert into auth.users(id,email) values('20000000-0000-4000-8000-000000000002','other@fixture.invalid'); insert into admin_users values('20000000-0000-4000-8000-000000000002');");
+  const demote = id => `begin;select set_account_role('${id}','${id}','editor','admin');select pg_sleep(0.5);commit;`;
+  const competing = await Promise.all([worker(demote('20000000-0000-4000-8000-000000000001')),worker(demote('20000000-0000-4000-8000-000000000002'))]);
+  const demotionStates = competing.map(r=>JSON.parse(r.split(/\r?\n/).find(l=>l.startsWith('{'))).state).sort();
+  assert.deepEqual(demotionStates,["last_admin","updated"]);
+  assert.equal(query("select count(*) from admin_users").trim(),"1");
+  const result={engine:"PostgreSQL 17.11 portable, loopback only",independentSessions:true,distinctPids:true,states,demotionStates,lastAdminPreserved:true,ledgerRows:1,emailSent:0};
   writeFileSync(path.join(out,"result.json"),JSON.stringify(result,null,2));console.log(JSON.stringify(result));
 } finally {if(started)run("pg_ctl",["-D",data,"-m","fast","-w","stop"]);}

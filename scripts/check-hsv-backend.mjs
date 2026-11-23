@@ -65,3 +65,22 @@ if (
 )
   throw Error("HSV4 event duplication migration is not available.");
 console.log("PASS HSV4 release capability includes event duplication.");
+const roles = await globalThis.fetch(
+  new URL("/rest/v1/rpc/account_role_capabilities", endpoint),
+  {
+    method: "POST",
+    headers: { apikey: key, "Content-Type": "application/json" },
+    body: "{}",
+    signal: globalThis.AbortSignal.timeout(15000),
+  },
+);
+const roleCapabilities = roles.ok ? await roles.json() : null;
+if (
+  roleCapabilities?.version !== 1 ||
+  !roleCapabilities.admin_assignment ||
+  !roleCapabilities.last_admin_guard
+)
+  throw Error("Account role management migration is not available.");
+console.log(
+  "PASS account roles support Admin assignment and last-Admin protection.",
+);

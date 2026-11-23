@@ -180,6 +180,7 @@ verify_jwt = true
       ${roleSchema}
       create function public.hsv_v3_capabilities() returns jsonb language sql immutable set search_path='' as $$select '{"version":3}'::jsonb$$;
       ${read("supabase/migrations/202611200002_editor_add_operations.sql")}
+      ${read("supabase/releases/role-management/01-account-roles.sql")}
       notify pgrst,'reload schema';`);
     const password = randomUUID() + "Aa1!";
     const create = async (email) => {
@@ -260,6 +261,80 @@ verify_jwt = true
       "Native existing-account grant failed",
     );
     passed("Auth JWT + server Admin verification + existing-account grant");
+    const coadmin = await create("coadmin@fixture.invalid");
+    assert.equal(
+      (await request({ ...add(coadmin.email), role: "admin" })).body.role,
+      "admin",
+    );
+    const coClient = createClient(api, status.ANON_KEY, options);
+    const coSession = await coClient.auth.signInWithPassword({
+      email: coadmin.email,
+      password,
+    });
+    assert.ok(!coSession.error && coSession.data.session);
+    const coToken = coSession.data.session.access_token;
+    const demote = (user_id, jwt) =>
+      request(
+        { action: "set_role", role: "editor", expected_role: "admin", user_id },
+        jwt,
+      );
+    const roleChanges = await Promise.all([
+      demote(admin.id, token),
+      demote(coadmin.id, coToken),
+    ]);
+    assert.deepEqual(
+      roleChanges.map((r) => r.body.state ?? r.body.code).sort(),
+      ["last_admin", "updated"],
+    );
+    assert.equal(sql("select count(*) from public.admin_users").trim(), "1");
+    const originalDemoted = roleChanges[0].body.state === "updated";
+    const restored = await request(
+      {
+        action: "set_role",
+        role: "admin",
+        expected_role: "editor",
+        user_id: originalDemoted ? admin.id : coadmin.id,
+      },
+      originalDemoted ? coToken : token,
+    );
+    assert.equal(restored.body.state, "updated");
+    assert.equal((await demote(coadmin.id, token)).body.state, "updated");
+    assert.equal(
+      (
+        await request(
+          { action: "revoke", role: "editor", user_id: coadmin.id },
+          coToken,
+        )
+      ).status,
+      403,
+    );
+    assert.equal(
+      (
+        await request(
+          { ...add("blocked-role@fixture.invalid"), role: "admin" },
+          coToken,
+        )
+      ).status,
+      403,
+    );
+    assert.equal(
+      (
+        await request(
+          {
+            action: "set_role",
+            role: "admin",
+            expected_role: "editor",
+            user_id: coadmin.id,
+          },
+          coToken,
+        )
+      ).status,
+      403,
+    );
+    assert.equal((await demote(admin.id, token)).body.code, "last_admin");
+    passed(
+      "Native Admin add, concurrent self-demotions keep one Admin, demotion immediately blocks role changes and Editor self-revoke",
+    );
     const capability = { action: "capabilities", role: "editor" };
     const operationCount = sql(
       "select count(*) from public.editor_add_operations",
@@ -267,6 +342,7 @@ verify_jwt = true
     const userCount = sql("select count(*) from auth.users");
     assert.deepEqual((await request(capability)).body, {
       ok: true,
+      account_roles: true,
       invitations_enabled: true,
     });
     assert.equal(
@@ -350,6 +426,23 @@ verify_jwt = true
       );
       return link;
     };
+    const adminInvite = {
+      ...add("invited-admin@fixture.invalid"),
+      role: "admin",
+    };
+    assert.equal((await request(adminInvite)).body.role, "admin");
+    await invitationUrl(adminInvite.email);
+    assert.equal((await request(adminInvite)).body.state, "already_admin");
+    assert.equal((await messages(adminInvite.email)).length, 1);
+    assert.equal(
+      sql(
+        "select count(*) from public.admin_users a join auth.users u on u.id=a.user_id where u.email='invited-admin@fixture.invalid'",
+      ).trim(),
+      "1",
+    );
+    passed(
+      "New Auth invitation receives Admin directly and retry sends no second email",
+    );
     start(
       process.execPath,
       [

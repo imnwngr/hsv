@@ -39,7 +39,7 @@ beforeEach(() => {
   });
   rpc.mockReset().mockImplementation(async (name) => ({
     data:
-      name === "begin_editor_add"
+      name === "begin_account_add"
         ? { state: "invite", lease, target: null }
         : { state: "granted", account_status: "invited" },
     error: null,
@@ -84,7 +84,7 @@ beforeEach(() => {
     },
   );
 });
-it("rejects anonymous, non-Admin, invalid payload, Admin assignment and bad email before service effects", async () => {
+it("rejects anonymous, non-Admin, invalid payload, unknown role and bad email before service effects", async () => {
   authenticated = false;
   expect((await handler(request(add))).status).toBe(401);
   authenticated = true;
@@ -92,7 +92,7 @@ it("rejects anonymous, non-Admin, invalid payload, Admin assignment and bad emai
   expect((await handler(request(add))).status).toBe(403);
   isAdmin = true;
   for (const body of [
-    { ...add, role: "admin" },
+    { ...add, role: "owner" },
     { ...add, email: "bad" },
     { ...add, extra: true },
     { ...add, request_id: "bad" },
@@ -105,17 +105,20 @@ it("reports invitation availability only to Admin without account or email side 
   const body = { action: "capabilities", role: "editor" };
   expect(await (await handler(request(body))).json()).toEqual({
     ok: true,
+    account_roles: true,
     invitations_enabled: true,
   });
   delete env.HSV_INVITATIONS_ENABLED;
   expect(await (await handler(request(body))).json()).toEqual({
     ok: true,
+    account_roles: true,
     invitations_enabled: false,
   });
   env.HSV_INVITATIONS_ENABLED = "verified";
   env.BOOKCLUB_ROLE_MODE = "fixture";
   expect(await (await handler(request(body))).json()).toEqual({
     ok: true,
+    account_roles: true,
     invitations_enabled: false,
   });
   expect((await handler(request({ ...body, email: add.email }))).status).toBe(
@@ -131,11 +134,11 @@ it("reports invitation availability only to Admin without account or email side 
 it("claims in SQL before sending, uses /hsv/ callback, and reports pending invitation only after grant", async () => {
   const r = await handler(request(add));
   expect(r.status).toBe(200);
-  expect(rpc.mock.calls[0][0]).toBe("begin_editor_add");
+  expect(rpc.mock.calls[0][0]).toBe("begin_account_add");
   expect(invite).toHaveBeenCalledWith(add.email, {
     redirectTo: "https://imnwngr.github.io/hsv/auth/accept",
   });
-  expect(rpc).toHaveBeenLastCalledWith("finish_editor_add", {
+  expect(rpc).toHaveBeenLastCalledWith("finish_account_add", {
     p_actor: "admin",
     p_email: add.email,
     p_lease: lease,
@@ -151,7 +154,7 @@ it("existing and already-Editor accounts never send an invitation", async () => 
   for (const state of ["grant", "already_editor"]) {
     rpc.mockImplementation(async (name) => ({
       data:
-        name === "begin_editor_add"
+        name === "begin_account_add"
           ? { state, lease, target, account_status: "confirmed" }
           : { state: "granted", account_status: "confirmed" },
       error: null,
@@ -163,7 +166,7 @@ it("existing and already-Editor accounts never send an invitation", async () => 
 it("keeps legacy existing-account grants compatible and stable without enabling email or a new add request", async () => {
   rpc.mockImplementation(async (name) => ({
     data:
-      name === "begin_editor_add"
+      name === "begin_account_add"
         ? { state: "grant", lease, target }
         : { state: "granted", account_status: "confirmed" },
     error: null,
@@ -174,7 +177,9 @@ it("keeps legacy existing-account grants compatible and stable without enabling 
     (await handler(request({ ...legacy, email: " NEW@FIXTURE.INVALID " })))
       .status,
   ).toBe(200);
-  const claims = rpc.mock.calls.filter(([name]) => name === "begin_editor_add");
+  const claims = rpc.mock.calls.filter(
+    ([name]) => name === "begin_account_add",
+  );
   expect(claims[0][1].p_request_id).toMatch(/^[a-f0-9-]{36}$/);
   expect(claims[1][1].p_request_id).toBe(claims[0][1].p_request_id);
   expect(claims[0][1].p_allow_invite).toBe(false);
@@ -205,7 +210,7 @@ it("lost Auth response is recorded as unknown, partial grant failure never repor
   invite.mockRejectedValue(new Error("timeout"));
   rpc.mockImplementation(async (name) => ({
     data:
-      name === "begin_editor_add"
+      name === "begin_account_add"
         ? { state: "invite", lease }
         : { state: "delivery_unknown" },
     error: null,
@@ -217,13 +222,13 @@ it("lost Auth response is recorded as unknown, partial grant failure never repor
     state: "delivery_unknown",
   });
   expect(rpc).toHaveBeenLastCalledWith(
-    "finish_editor_add",
+    "finish_account_add",
     expect.objectContaining({ p_target: null }),
   );
   invite.mockResolvedValue({ data: { user: { id: target } }, error: null });
   rpc.mockImplementation(async (name) => ({
     data:
-      name === "begin_editor_add"
+      name === "begin_account_add"
         ? { state: "invite", lease }
         : { state: "grant_failed" },
     error: null,
@@ -232,7 +237,7 @@ it("lost Auth response is recorded as unknown, partial grant failure never repor
 });
 it("network failure after a claim returns unknown outcome instead of retrying email", async () => {
   rpc.mockImplementation(async (name) => {
-    if (name === "finish_editor_add") throw Error("lost");
+    if (name === "finish_account_add") throw Error("lost");
     return { data: { state: "invite", lease }, error: null };
   });
   expect(await (await handler(request(add))).json()).toMatchObject({
@@ -252,7 +257,7 @@ it("fails closed for missing mode, fixture, unverified email and sandbox pointed
   });
   await handler(request(add));
   expect(rpc).toHaveBeenCalledWith(
-    "begin_editor_add",
+    "begin_account_add",
     expect.objectContaining({ p_allow_invite: false }),
   );
   expect(invite).not.toHaveBeenCalled();
@@ -261,9 +266,9 @@ it("fails closed for missing mode, fixture, unverified email and sandbox pointed
   env.BOOKCLUB_ROLE_MODE = "live";
   delete env.HSV_INVITATIONS_ENABLED;
   await handler(request(add));
-  expect(rpc).toHaveBeenLastCalledWith("finish_editor_add", expect.anything());
+  expect(rpc).toHaveBeenLastCalledWith("finish_account_add", expect.anything());
   expect(rpc).toHaveBeenCalledWith(
-    "begin_editor_add",
+    "begin_account_add",
     expect.objectContaining({ p_allow_invite: false }),
   );
 });
@@ -302,4 +307,88 @@ it("revoke checks UUID and server permission, leaving Admin targets to the SQL g
     p_target: target,
     p_grant: false,
   });
+});
+it("Admin selection is persisted before invitation and final grant; existing Admin retry sends no email", async () => {
+  const response = await handler(request({ ...add, role: "admin" }));
+  expect(response.status).toBe(200);
+  expect(rpc).toHaveBeenCalledWith(
+    "begin_account_add",
+    expect.objectContaining({ p_role: "admin", p_actor: "admin" }),
+  );
+  expect(invite).toHaveBeenCalledTimes(1);
+  invite.mockClear();
+  rpc.mockResolvedValue({
+    data: { state: "already_admin", role: "admin" },
+    error: null,
+  });
+  expect((await handler(request({ ...add, role: "admin" }))).status).toBe(200);
+  expect(invite).not.toHaveBeenCalled();
+});
+it("changing or revoking Admin uses current actor and expected role; last Admin refusal is returned honestly", async () => {
+  const body = {
+    action: "set_role",
+    role: "editor",
+    expected_role: "admin",
+    user_id: target,
+  };
+  rpc.mockResolvedValue({ data: { state: "last_admin" }, error: null });
+  expect(await (await handler(request(body))).json()).toEqual({
+    code: "last_admin",
+  });
+  expect(rpc).toHaveBeenLastCalledWith("set_account_role", {
+    p_actor: "admin",
+    p_target: target,
+    p_role: "editor",
+    p_expected_role: "admin",
+  });
+  rpc.mockResolvedValue({
+    data: { state: "updated", role: "admin" },
+    error: null,
+  });
+  expect(
+    (
+      await handler(
+        request({ ...body, role: "admin", expected_role: "editor" }),
+      )
+    ).status,
+  ).toBe(200);
+  rpc.mockResolvedValue({ data: { state: "revoked" }, error: null });
+  expect(
+    (
+      await handler(
+        request({ action: "revoke", role: "admin", user_id: target }),
+      )
+    ).status,
+  ).toBe(200);
+  expect(rpc).toHaveBeenLastCalledWith("set_account_role", {
+    p_actor: "admin",
+    p_target: target,
+    p_role: null,
+    p_expected_role: "admin",
+  });
+});
+it("Editor cannot promote, demote, add Admin or revoke itself; incomplete change requests do nothing", async () => {
+  isAdmin = false;
+  for (const body of [
+    { ...add, role: "admin" },
+    {
+      action: "set_role",
+      role: "admin",
+      expected_role: "editor",
+      user_id: target,
+    },
+    { action: "revoke", role: "editor", user_id: target },
+  ]) {
+    expect((await handler(request(body))).status).toBe(403);
+  }
+  isAdmin = true;
+  expect(
+    (
+      await handler(
+        request({ action: "set_role", role: "admin", user_id: target }),
+      )
+    ).status,
+  ).toBe(400);
+  expect(rpc).not.toHaveBeenCalled();
+  expect(invite).not.toHaveBeenCalled();
 });

@@ -31,21 +31,27 @@ Deno.serve(async request => {
     if (sandbox && (!/^http:\/\/(localhost|127\.0\.0\.1|kong|supabase_kong_[a-z0-9_-]+)(:\d+)?$/.test(url) || origin === productionOrigin)) return reply(503, { code: "sandbox_configuration_invalid" });
     let body: Record<string, unknown>;
     try { body = await request.json(); } catch { return reply(400, { code: "invalid_request" }); }
-    if (!body || typeof body !== "object" || Array.isArray(body) || Object.keys(body).some(k => !["action", "email", "role", "user_id", "request_id"].includes(k)) || body.role !== "editor" || !["capabilities", "add", "grant", "invite", "revoke"].includes(String(body.action))) return reply(400, { code: "invalid_request" });
+    if (!body || typeof body !== "object" || Array.isArray(body) || Object.keys(body).some(k => !["action", "email", "role", "user_id", "request_id", "expected_role"].includes(k)) || !["editor", "admin"].includes(String(body.role)) || !["capabilities", "add", "grant", "invite", "revoke", "set_role"].includes(String(body.action))) return reply(400, { code: "invalid_request" });
     if (body.action === "capabilities") {
       if (Object.keys(body).some(k => !["action", "role"].includes(k))) return reply(400, { code: "invalid_request" });
-      return reply(200, { ok: true, invitations_enabled: mode !== "fixture" && Deno.env.get("HSV_INVITATIONS_ENABLED") === "verified" });
+      return reply(200, { ok: true, account_roles: true, invitations_enabled: mode !== "fixture" && Deno.env.get("HSV_INVITATIONS_ENABLED") === "verified" });
     }
     const service = createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false }, global: { fetch: (input, init) => fetch(input, { ...init, signal: AbortSignal.timeout(25000) }) } });
     const fixture = Deno.env.get("BOOKCLUB_ROLE_FIXTURE_USER_ID");
     if (mode === "fixture" && (!fixture || !uuid.test(fixture))) return reply(503, { code: "fixture_missing" });
 
-    if (body.action === "revoke") {
+    if (body.action === "revoke" || body.action === "set_role") {
       if (typeof body.user_id !== "string" || !uuid.test(body.user_id)) return reply(400, { code: "invalid_account" });
+      if (body.action === "set_role" && !["admin", "editor"].includes(String(body.expected_role))) return reply(400, { code: "invalid_request" });
       if (mode === "fixture" && body.user_id.toLowerCase() !== fixture?.toLowerCase()) return reply(403, { code: "fixture_only" });
-      const result = await service.rpc("set_editor_role", { p_actor: user.data.user.id, p_target: body.user_id, p_grant: false });
+      // Legacy revocations must never remove a target promoted since the page was loaded.
+      const legacyRevoke = body.action === "revoke" && body.role === "editor";
+      const result = legacyRevoke
+        ? await service.rpc("set_editor_role", { p_actor: user.data.user.id, p_target: body.user_id, p_grant: false })
+        : await service.rpc("set_account_role", { p_actor: user.data.user.id, p_target: body.user_id, p_role: body.action === "revoke" ? null : body.role, p_expected_role: body.action === "revoke" ? body.role : body.expected_role });
       if (result.error) return reply(result.error.code === "42501" ? 403 : 409, { code: "role_refused" });
-      return reply(200, { ok: true, state: "revoked" });
+      if (!legacyRevoke && !["revoked", "updated", "unchanged"].includes(result.data?.state)) return reply(409, { code: result.data?.state ?? "outcome_unknown" });
+      return reply(200, { ok: true, ...(legacyRevoke ? { state: "revoked" } : result.data) });
     }
     if (typeof body.email !== "string" || body.email.length > 254 || !emailPattern.test(body.email.trim())) return reply(400, { code: "invalid_email" });
     const email = body.email.trim().toLowerCase();
@@ -53,7 +59,7 @@ Deno.serve(async request => {
     // Older clients grant existing accounts without an operation ID during backend-first rollout.
     // They cannot send invitations; keep their request stable across response loss and retries.
     if (body.action === "grant" && body.request_id === undefined) {
-      const digest = new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(`hsv-v3-legacy-grant:${user.data.user.id}:${email}`)));
+      const digest = new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(`hsv-v3-legacy-grant:${user.data.user.id}:${email}${body.role === "admin" ? ":admin" : ""}`)));
       digest[6] = (digest[6] & 0x0f) | 0x50;
       digest[8] = (digest[8] & 0x3f) | 0x80;
       const hex = Array.from(digest.slice(0, 16), byte => byte.toString(16).padStart(2, "0")).join("");
@@ -65,10 +71,10 @@ Deno.serve(async request => {
       if (target.error || target.data.user?.email?.toLowerCase() !== email || target.data.user.is_anonymous || (target.data.user.banned_until && Date.parse(target.data.user.banned_until) > Date.now())) return reply(403, { code: "fixture_only" });
     }
     const allowInvite = body.action === "add" && mode !== "fixture" && Deno.env.get("HSV_INVITATIONS_ENABLED") === "verified";
-    const begin = await service.rpc("begin_editor_add", { p_actor: user.data.user.id, p_email: email, p_request_id: body.request_id, p_allow_invite: allowInvite });
+    const begin = await service.rpc("begin_account_add", { p_actor: user.data.user.id, p_email: email, p_request_id: body.request_id, p_allow_invite: allowInvite, p_role: body.role });
     if (begin.error) return reply(begin.error.code === "42501" ? 403 : 503, { code: begin.error.code === "42501" ? "admin_required" : "backend_not_ready" });
     const operation = begin.data;
-    if (operation?.state === "already_editor") return reply(200, { ok: true, ...operation });
+    if (["already_editor", "already_admin"].includes(operation?.state)) return reply(200, { ok: true, ...operation });
     if (operation?.state === "processing") return reply(202, { ok: false, state: "processing", code: "processing" });
     if (!["invite", "grant"].includes(operation?.state) || !uuid.test(operation?.lease ?? "")) return reply(409, { code: operation?.state ?? "backend_not_ready", state: operation?.state });
     claimed = true;
@@ -81,7 +87,7 @@ Deno.serve(async request => {
         target = invitation.error ? null : invitation.data.user?.id ?? null;
       } catch { target = null; }
     }
-    const finish = await service.rpc("finish_editor_add", { p_actor: user.data.user.id, p_email: email, p_lease: operation.lease, p_target: target });
+    const finish = await service.rpc("finish_account_add", { p_actor: user.data.user.id, p_email: email, p_lease: operation.lease, p_target: target });
     if (finish.error) return reply(502, { code: "outcome_unknown", state: "recovery_required" });
     if (finish.data?.state !== "granted") return reply(finish.data?.state === "processing" ? 202 : 409, { ok: false, ...finish.data, code: finish.data?.state ?? "outcome_unknown" });
     return reply(200, { ok: true, ...finish.data });

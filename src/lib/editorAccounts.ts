@@ -1,13 +1,17 @@
 export const accountMessages: Record<string, string> = {
   session_expired:
     "Phiên đăng nhập đã hết hạn. Đăng nhập lại rồi kiểm tra trạng thái tài khoản.",
-  admin_required: "Chỉ Admin đang có quyền mới được thêm tài khoản.",
+  admin_required: "Chỉ Admin đang có quyền mới được quản lý tài khoản.",
+  last_admin:
+    "Cần giữ ít nhất một Admin hoạt động. Nâng tài khoản khác lên Admin trước khi đổi quyền này.",
+  role_conflict:
+    "Tài khoản đã có vai trò khác hoặc đang chờ cấp quyền khác. Kiểm tra danh sách và yêu cầu cần khôi phục trước khi tiếp tục.",
   invalid_email: "Nhập địa chỉ email hợp lệ.",
   invalid_request: "Yêu cầu không hợp lệ. Tải lại trang rồi thử lại.",
   role_refused:
     "Không thể thay đổi quyền. Tải lại danh sách để kiểm tra quyền hiện tại.",
   role_changed:
-    "Quyền đã được thu hồi sau yêu cầu này. Yêu cầu cũ không cấp lại quyền. Đóng hộp thoại và bắt đầu thao tác mới nếu muốn thêm lại tài khoản.",
+    "Vai trò đã thay đổi sau yêu cầu này. Tải lại danh sách và bắt đầu thao tác mới để tiếp tục.",
   operation_mode_missing:
     "Chức năng tài khoản chưa được cấu hình trên máy chủ.",
   configuration_missing: "Máy chủ chưa đủ cấu hình quản lý tài khoản.",
@@ -20,7 +24,7 @@ export const accountMessages: Record<string, string> = {
   delivery_unknown:
     "Chưa xác nhận được kết quả gửi lời mời. Hệ thống sẽ không tự gửi lại. Kiểm tra tài khoản để khôi phục; nếu chưa có tài khoản, cần quản trị hệ thống đối chiếu log email.",
   grant_failed:
-    "Chưa cấp được quyền Editor. Tài khoản hoặc lời mời có thể đã được tạo. Kiểm tra và khôi phục sẽ không gửi thêm email.",
+    "Chưa cấp được quyền đã chọn. Tài khoản hoặc lời mời có thể đã được tạo. Kiểm tra và khôi phục sẽ không gửi thêm email.",
   outcome_unknown:
     "Kết quả chưa xác định do gián đoạn kết nối. Kiểm tra và khôi phục trước khi tiếp tục; không tự gửi thêm email.",
   request_failed:
@@ -35,16 +39,21 @@ export const accountMessages: Record<string, string> = {
     "Môi trường kiểm thử chỉ cho phép tài khoản fixture đã cấu hình.",
   client_upgrade_required: "Tải lại trang để dùng luồng thêm tài khoản mới.",
 };
-export function accountResultMessage(state: string, status?: string) {
-  if (state === "already_editor")
+export function accountResultMessage(
+  state: string,
+  status?: string,
+  role: "admin" | "editor" = "editor",
+) {
+  const label = role === "admin" ? "Admin" : "Editor";
+  if (state === "already_editor" || state === "already_admin")
     return status === "invited"
-      ? "Tài khoản đã có quyền Editor, đang chờ nhận lời mời. Không gửi thêm email."
+      ? `Tài khoản đã có quyền ${label}, đang chờ nhận lời mời. Không gửi thêm email.`
       : status === "unconfirmed"
-        ? "Tài khoản đã có quyền Editor nhưng chưa xác nhận email. Cần kiểm tra cách đăng nhập."
-        : "Tài khoản đã có quyền Editor. Không thay đổi quyền hoặc gửi email.";
+        ? `Tài khoản đã có quyền ${label} nhưng chưa xác nhận email. Cần kiểm tra cách đăng nhập.`
+        : `Tài khoản đã có quyền ${label}. Không thay đổi quyền hoặc gửi email.`;
   if (status === "invited")
-    return "Đã cấp quyền Editor, đang chờ người nhận hoàn tất lời mời qua email.";
+    return `Đã cấp quyền ${label}, đang chờ người nhận hoàn tất lời mời qua email.`;
   if (status === "unconfirmed")
-    return "Đã cấp quyền Editor, nhưng tài khoản chưa xác nhận email. Cần quản trị hệ thống hỗ trợ xác nhận hoặc khôi phục đăng nhập.";
-  return "Đã cấp quyền Editor cho tài khoản hiện có.";
+    return `Đã cấp quyền ${label}, nhưng tài khoản chưa xác nhận email. Cần quản trị hệ thống hỗ trợ xác nhận hoặc khôi phục đăng nhập.`;
+  return `Đã cấp quyền ${label} cho tài khoản hiện có.`;
 }

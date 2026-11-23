@@ -846,6 +846,16 @@ html:has(.dirty-save-bar) {
   font-size: 0.9375rem;
   font-weight: 500;
 }
+.role-row .role-actions {
+  flex: 0 1 auto;
+  min-width: 0;
+  justify-content: flex-end;
+  margin: 0;
+}
+.role-field {
+  display: grid;
+  gap: 0.5rem;
+}
 .role-row p {
   color: var(--muted);
   font-size: 0.8125rem;

@@ -1824,7 +1824,7 @@ for (const role of ["admin", "editor"])
         await expect(page.getByRole("dialog")).toBeVisible();
         await expect(
           page.getByRole("dialog").getByLabel("Vai trò").locator("option"),
-        ).toHaveText(["Editor"]);
+        ).toHaveText(["Editor", "Admin"]);
         await page.getByRole("button", { name: "Hủy", exact: true }).click();
       } else {
         await expect(

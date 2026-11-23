@@ -288,7 +288,7 @@ test("v3 add Editor dialog handles default, loading, partial error, retry and pe
   await capture(page, `account-loading-${info.project.name}`);
   expect(calls).toBe(1);
   release();
-  await expect(dialog.getByText(/Chưa cấp được quyền Editor/)).toBeVisible();
+  await expect(dialog.getByText(/Chưa cấp được quyền đã chọn/)).toBeVisible();
   await capture(page, `account-error-${info.project.name}`);
   success = true;
   pending = Promise.resolve();

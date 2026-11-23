@@ -5,6 +5,7 @@ import { db, errorMessage } from "../lib/supabase";
 import { ErrorState, Loading } from "../components/Feedback";
 import { Confirm } from "../components/Confirm";
 import { accountMessages, accountResultMessage } from "../lib/editorAccounts";
+import { client } from "../lib/queryClient";
 interface Account {
   user_id: string;
   email: string;
@@ -18,6 +19,8 @@ export default function RoleDirectory() {
     [email, setEmail] = useState(""),
     [busy, setBusy] = useState(false),
     [target, setTarget] = useState<Account | null>(null);
+  const [selectedRole, setSelectedRole] = useState<Account["role"]>("editor");
+  const [targetRole, setTargetRole] = useState<Account["role"] | null>(null);
   const [feedback, setFeedback] = useState<{
     text: string;
     success: boolean;
@@ -53,12 +56,17 @@ export default function RoleDirectory() {
     },
   });
   const recovery = useQuery({
-    queryKey: ["editor-add-recovery"],
+    queryKey: ["account-add-recovery"],
     enabled: role.data === "admin",
     queryFn: async () => {
-      const r = await db().rpc("editor_add_recovery");
+      const r = await db().rpc("account_add_recovery");
       if (r.error) throw r.error;
-      return r.data as { email: string; state: string; updated_at: string }[];
+      return r.data as {
+        email: string;
+        state: string;
+        updated_at: string;
+        requested_role: Account["role"];
+      }[];
     },
   });
   const capabilities = useQuery({
@@ -79,8 +87,9 @@ export default function RoleDirectory() {
       return { invitationsEnabled: r.data.invitations_enabled as boolean };
     },
   });
-  function openAdd(value = "") {
+  function openAdd(value = "", requestedRole: Account["role"] = "editor") {
     setEmail(value);
+    setSelectedRole(requestedRole);
     setFeedback(null);
     setRequestId(crypto.randomUUID());
     setDialog(true);
@@ -90,8 +99,10 @@ export default function RoleDirectory() {
     email?: string;
     user_id?: string;
     request_id?: string;
+    role: Account["role"];
+    expected_role?: Account["role"];
   }) {
-    if (inFlight.current) return;
+    if (inFlight.current || role.data !== "admin") return;
     inFlight.current = true;
     setBusy(true);
     setFeedback(null);
@@ -100,7 +111,7 @@ export default function RoleDirectory() {
     let failureCode = "outcome_unknown";
     try {
       const r = await db().functions.invoke("manage-editors", {
-        body: { ...body, role: "editor" },
+        body,
         signal: controller.signal,
       });
       if (r.error) {
@@ -123,11 +134,19 @@ export default function RoleDirectory() {
       }
       if (body.action === "add")
         setFeedback({
-          text: accountResultMessage(r.data.state, r.data.account_status),
+          text: accountResultMessage(
+            r.data.state,
+            r.data.account_status,
+            body.role,
+          ),
           success: true,
         });
       else {
-        toast.success("Đã thu hồi quyền Editor");
+        toast.success(
+          body.action === "set_role"
+            ? `Đã đổi vai trò thành ${body.role === "admin" ? "Admin" : "Editor"}`
+            : `Đã thu hồi quyền ${body.role === "admin" ? "Admin" : "Editor"}`,
+        );
         setDialog(false);
       }
       setTarget(null);
@@ -152,7 +171,12 @@ export default function RoleDirectory() {
       else toast.error(text);
     } finally {
       window.clearTimeout(timer);
-      await Promise.allSettled([directory.refetch(), recovery.refetch()]);
+      await Promise.allSettled([
+        directory.refetch(),
+        role.refetch(),
+        recovery.refetch(),
+        client.invalidateQueries({ queryKey: ["admin"] }),
+      ]);
       inFlight.current = false;
       setBusy(false);
     }
@@ -209,7 +233,7 @@ export default function RoleDirectory() {
                   <span
                     className={`status ${r.role === "admin" ? "published" : ""}`}
                   >
-                    {r.role === "admin" ? "Admin · Được bảo vệ" : "Editor"}
+                    {r.role === "admin" ? "Admin" : "Editor"}
                   </span>{" "}
                   ·{" "}
                   {r.status === "invited"
@@ -219,10 +243,31 @@ export default function RoleDirectory() {
                       : "Chưa xác nhận"}
                 </p>
               </div>
-              {admin && r.role === "editor" && (
-                <button className="secondary" onClick={() => setTarget(r)}>
-                  Thu hồi Editor
-                </button>
+              {admin && (
+                <div className="actions role-actions">
+                  <button
+                    className="secondary"
+                    disabled={busy}
+                    onClick={() => {
+                      setTargetRole(r.role === "admin" ? "editor" : "admin");
+                      setTarget(r);
+                    }}
+                  >
+                    {r.role === "admin"
+                      ? "Hạ thành Editor"
+                      : "Nâng thành Admin"}
+                  </button>
+                  <button
+                    className="secondary"
+                    disabled={busy}
+                    onClick={() => {
+                      setTargetRole(null);
+                      setTarget(r);
+                    }}
+                  >
+                    Thu hồi {r.role === "admin" ? "Admin" : "Editor"}
+                  </button>
+                </div>
               )}
             </div>
           ))
@@ -259,7 +304,7 @@ export default function RoleDirectory() {
                   </div>
                   <button
                     className="secondary"
-                    onClick={() => openAdd(item.email)}
+                    onClick={() => openAdd(item.email, item.requested_role)}
                   >
                     Kiểm tra và khôi phục
                   </button>
@@ -269,14 +314,14 @@ export default function RoleDirectory() {
           )}
         </section>
       )}
-      {dialog && (
+      {dialog && admin && (
         <dialog
           ref={modal}
           onCancel={(e) => {
             e.preventDefault();
             if (!busy) setDialog(false);
           }}
-          aria-label="Thêm tài khoản Editor"
+          aria-label="Thêm tài khoản"
         >
           <form
             className="panel role-add-form"
@@ -286,13 +331,14 @@ export default function RoleDirectory() {
                 action: "add",
                 email: email.trim(),
                 request_id: requestId,
+                role: selectedRole,
               });
             }}
           >
             <h2>Thêm tài khoản</h2>
             <p>
-              Nhập email để hệ thống kiểm tra và cấp quyền Editor cho tài khoản
-              đã có. Khi khôi phục yêu cầu, hệ thống không tự gửi lại email.
+              Chọn vai trò và nhập email để thêm tài khoản. Khi khôi phục yêu
+              cầu, hệ thống giữ vai trò đã chọn và không tự gửi lại email.
             </p>
             <div
               role="status"
@@ -339,12 +385,28 @@ export default function RoleDirectory() {
                 }}
               />
             </label>
-            <label>
-              Vai trò
-              <select value="editor" disabled>
+            <div className="role-field">
+              <label htmlFor="account-role">Vai trò</label>
+              <select
+                id="account-role"
+                value={selectedRole}
+                disabled={busy}
+                onChange={(e) => {
+                  setSelectedRole(e.target.value as Account["role"]);
+                  setFeedback(null);
+                  setRequestId(crypto.randomUUID());
+                }}
+              >
                 <option value="editor">Editor</option>
+                <option value="admin">Admin</option>
               </select>
-            </label>
+            </div>
+            {selectedRole === "admin" && (
+              <p className="notice">
+                Admin có thể quản lý tài khoản, thay đổi vai trò và chỉnh sửa
+                toàn bộ nội dung.
+              </p>
+            )}
             <div
               role="status"
               aria-label="Kết quả thêm tài khoản"
@@ -364,12 +426,12 @@ export default function RoleDirectory() {
                 {busy
                   ? "Đang xử lý…"
                   : feedback?.success
-                    ? "Đã có quyền Editor"
+                    ? `Đã có quyền ${selectedRole === "admin" ? "Admin" : "Editor"}`
                     : feedback?.recovery
                       ? "Kiểm tra và khôi phục"
                       : feedback
                         ? "Thử lại"
-                        : "Thêm Editor"}
+                        : `Thêm ${selectedRole === "admin" ? "Admin" : "Editor"}`}
               </button>
               <button
                 type="button"
@@ -383,17 +445,37 @@ export default function RoleDirectory() {
           </form>
         </dialog>
       )}
-      {target && (
+      {target && admin && (
         <Confirm
-          title="Thu hồi quyền Editor?"
+          title={
+            targetRole
+              ? `Đổi vai trò thành ${targetRole === "admin" ? "Admin" : "Editor"}?`
+              : `Thu hồi quyền ${target.role === "admin" ? "Admin" : "Editor"}?`
+          }
           busy={busy}
           onClose={() => setTarget(null)}
           onConfirm={() =>
-            void mutate({ action: "revoke", user_id: target.user_id })
+            void mutate(
+              targetRole
+                ? {
+                    action: "set_role",
+                    user_id: target.user_id,
+                    role: targetRole,
+                    expected_role: target.role,
+                  }
+                : {
+                    action: "revoke",
+                    user_id: target.user_id,
+                    role: target.role,
+                  },
+            )
           }
         >
-          Tài khoản {target.email} sẽ mất quyền quản trị nội dung. Tài khoản
-          đăng nhập vẫn được giữ.
+          {targetRole === "admin"
+            ? `Tài khoản ${target.email} sẽ được quản lý tài khoản và nội dung.`
+            : targetRole === "editor"
+              ? `Tài khoản ${target.email} chỉ còn quyền chỉnh sửa nội dung, không được quản lý tài khoản.`
+              : `Tài khoản ${target.email} sẽ mất quyền quản trị nội dung. Tài khoản đăng nhập vẫn được giữ.`}
         </Confirm>
       )}
     </section>
